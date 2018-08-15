@@ -56,6 +56,8 @@ selected_vars <- selectVars(initial_data, c("fgood #cbs1 cbs2 cbs3 dep cbnew cbd
 binned_table <- data.table(matrix(nrow = column_length, ncol = length(selected_vars)))
 #data set to be processed
 initial_data_updated <- as.data.table(chileancredit[,c(names(chileancredit) %in% selected_vars)])
+#row_unique_identifier
+initial_data_updated[, row_num := .I]
 #initial_data_updated <- cbind(initial_data_updated, gb)
 binAll(initial_data_updated, interval_qty, selected_vars)
 
@@ -102,12 +104,23 @@ processFactor <- function(initial_data_updated, selected_vars, factor_type){
   #vector of column names
   column_names <- names(initial_data_updated)
   column_names_factor <- column_names[factors_selected_index]
-
+  column_names_factor[length(column_names_factor)+1] <- "row_num"
+  
+  i <-1
   #column_classes == column_names
-  for (i in lenght(factors_selected_index)){
+  xxx <- data.table(nrows = dim(initial_data_updated)[1])
+  
+  for (i in length(column_names_factor)-1){
 
-    initial_data_updated[, ..column_names_factor]
+    #initial_data_updated[, ..column_names_factor]
+    
+    
 
+    formula_string <- paste("row_num ~ ", column_names_factor[i]) 
+    
+    m <- dcast.data.table(initial_data_updated[, ..column_names_factor], formula(formula_string), fun.aggregate = length, drop = FALSE)
+    xxx <- cbind(xxx, m[,-1])
+    
   }
 
 }
@@ -235,6 +248,9 @@ binVector <- function( vector_to_be_binned
 
 }
 
+
+rm(list=ls())
+rm()
 
 
 binned_table[, c(names(binned_table)[j])]
