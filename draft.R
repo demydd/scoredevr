@@ -94,9 +94,9 @@ compilePreSummary <- function(){
 
 }
 
-processFactor(initial_data_updated, selected_vars)
+processFactor(initial_data_updated, selected_vars, factor_type = 2)
 
-processFactor <- function(initial_data_updated, selected_vars, factor_type = NULL){
+processFactor <- function(initial_data_updated, selected_vars, factor_type = 1){
 browser()
   #vector of column classes
   column_classes <- sapply(initial_data_updated, class)
@@ -110,7 +110,8 @@ browser()
 
   #temporary table to contain transposed vectors
   tmp_table <- data.table(nrows = dim(initial_data_updated)[1])
-  # OPTION1 - FOR loop to process all factors in vector per each level
+  tmp_level_table <- data.table(nrows = dim(initial_data_updated)[1])
+  # OPTION1 - Dummy varuables. FOR loop to process all factors in vector per each level
   if (factor_type == 1){
     for (step in column_names_factor){
       #define factor levels in the selected column
@@ -130,35 +131,30 @@ browser()
     
   }
 
-  # OPTION1 - FOR loop to process all factors in vector per each level (1 or 0)
-  if (factor_type == 1){
+  # OPTION2 - FOR loop to process all factors in integer per each level
+  if (factor_type == 2){
+    
     for (step in column_names_factor){
-      #define factor levels in the selected column
-      cycle <- levels(unlist(initial_data_updated[,..step]))
-      #FOR loop to process factor levels
-      for(j in cycle){
-        #define the vector with 1 and 0 per each level
-        condition <- as.integer(unlist(initial_data_updated[,..step]) == j)
-        #populate the temporary table
-        tmp_table <- cbind(tmp_table, condition)
-        #put names to new columns
-        names(tmp_table)[dim(tmp_table)[2]] <- paste(step, "_", j, sep = "") 
-        
-      }
-      
+      #add the integer vector
+      selection <- as.integer(unlist(initial_data_updated[,..step])) 
+      tmp_table <- cbind(tmp_table,  as.integer(unlist(initial_data_updated[,..step])))
+      names(tmp_table)[dim(tmp_table)[2]] <- step
+      #add the to integer vector to the level temporary table
+      tmp_level_table <- cbind(tmp_level_table, levels(unlist(initial_data_updated[,..step])))
+      #add the name of factor converted to integer vector
+      names(tmp_level_table)[dim(tmp_level_table)[2]] <- step 
     }
     
   }
   
   
-  # OPTION2 - FOR loop to process all factors in integer per each level
-  if (factor_type == 2){
+  # OPTION3 - FOR loop to process all factors in integer per each level
+  if (factor_type == 3){
     
   }
   
 }
 
-rm(tmp_table)
 #the function to preprocess data
 processData <- function(initial_data, selected_vars){
 
