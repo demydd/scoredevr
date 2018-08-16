@@ -57,7 +57,7 @@ binned_table <- data.table(matrix(nrow = column_length, ncol = length(selected_v
 #data set to be processed
 initial_data_updated <- as.data.table(chileancredit[,c(names(chileancredit) %in% selected_vars)])
 #row_unique_identifier
-initial_data_updated[, row_num := .I]
+#initial_data_updated[, row_num := .I]
 #initial_data_updated <- cbind(initial_data_updated, gb)
 binAll(initial_data_updated, interval_qty, selected_vars)
 
@@ -94,38 +94,71 @@ compilePreSummary <- function(){
 
 }
 
-processFactor <- function(initial_data_updated, selected_vars, factor_type){
+processFactor(initial_data_updated, selected_vars)
 
+processFactor <- function(initial_data_updated, selected_vars, factor_type = NULL){
+browser()
   #vector of column classes
   column_classes <- sapply(initial_data_updated, class)
+  #define factor column
   factors_selected_index  <- which(column_classes == "factor")
   if (length(factors_selected_index) == 0) break
 
-  #vector of column names
+  #vector of column names for factors
   column_names <- names(initial_data_updated)
   column_names_factor <- column_names[factors_selected_index]
-  column_names_factor[length(column_names_factor)+1] <- "row_num"
-  
-  i <-1
-  #column_classes == column_names
-  xxx <- data.table(nrows = dim(initial_data_updated)[1])
-  
-  for (i in length(column_names_factor)-1){
 
-    #initial_data_updated[, ..column_names_factor]
-    
-    
-
-    formula_string <- paste("row_num ~ ", column_names_factor[i]) 
-    
-    m <- dcast.data.table(initial_data_updated[, ..column_names_factor], formula(formula_string), fun.aggregate = length, drop = FALSE)
-    xxx <- cbind(xxx, m[,-1])
+  #temporary table to contain transposed vectors
+  tmp_table <- data.table(nrows = dim(initial_data_updated)[1])
+  # OPTION1 - FOR loop to process all factors in vector per each level
+  if (factor_type == 1){
+    for (step in column_names_factor){
+      #define factor levels in the selected column
+      cycle <- levels(unlist(initial_data_updated[,..step]))
+      #FOR loop to process factor levels
+      for(j in cycle){
+        #define the vector with 1 and 0 per each level
+        condition <- as.integer(unlist(initial_data_updated[,..step]) == j)
+        #populate the temporary table
+        tmp_table <- cbind(tmp_table, condition)
+        #put names to new columns
+        names(tmp_table)[dim(tmp_table)[2]] <- paste(step, "_", j, sep = "") 
+        
+      }
+      
+    }
     
   }
 
+  # OPTION1 - FOR loop to process all factors in vector per each level (1 or 0)
+  if (factor_type == 1){
+    for (step in column_names_factor){
+      #define factor levels in the selected column
+      cycle <- levels(unlist(initial_data_updated[,..step]))
+      #FOR loop to process factor levels
+      for(j in cycle){
+        #define the vector with 1 and 0 per each level
+        condition <- as.integer(unlist(initial_data_updated[,..step]) == j)
+        #populate the temporary table
+        tmp_table <- cbind(tmp_table, condition)
+        #put names to new columns
+        names(tmp_table)[dim(tmp_table)[2]] <- paste(step, "_", j, sep = "") 
+        
+      }
+      
+    }
+    
+  }
+  
+  
+  # OPTION2 - FOR loop to process all factors in integer per each level
+  if (factor_type == 2){
+    
+  }
+  
 }
 
-
+rm(tmp_table)
 #the function to preprocess data
 processData <- function(initial_data, selected_vars){
 
@@ -252,30 +285,6 @@ binVector <- function( vector_to_be_binned
 rm(list=ls())
 rm()
 
-
-binned_table[, c(names(binned_table)[j])]
-
-
-length(unique(mapping_vector))
-
-sum(mapping_vector==27)
-
-
-class(actual_vector_intervals[2, 1])
-
-sorted_vector_updated > 514
-
-class(as.vector(actual_vector_intervals[2, 1]))
-
-str(chileancredit)
-
-as.integer(levels(chileancredit$home))[chileancredit$home]
-
-as.integer(chileancredit$home)
-as.integer(chileancredit$inc)
-
-rm(list = ls())
-gc()
 
 
 
