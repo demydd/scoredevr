@@ -94,9 +94,9 @@ compilePreSummary <- function(){
 
 }
 
-processFactor(initial_data_updated, selected_vars, factor_type = 2)
+processFactor(initial_data_updated, selected_vars, factor_type = 3, gb)
 
-processFactor <- function(initial_data_updated, selected_vars, factor_type = 1){
+processFactor <- function(initial_data_updated, selected_vars, factor_type = 1, gb){
 browser()
   #vector of column classes
   column_classes <- sapply(initial_data_updated, class)
@@ -109,8 +109,13 @@ browser()
   column_names_factor <- column_names[factors_selected_index]
 
   #temporary table to contain transposed vectors
-  tmp_table <- data.table(nrows = dim(initial_data_updated)[1])
-  tmp_level_table <- data.table(nrows = dim(initial_data_updated)[1])
+  nrows <- dim(initial_data_updated)[1]
+  #temporary table for all options
+  tmp_table <- data.table(nrows = nrows)
+  #temporary table for option
+  tmp_level_table <- data.table(nrows = nrows)
+  tmp_vector <- c(1:nrows)
+  
   # OPTION1 - Dummy varuables. FOR loop to process all factors in vector per each level
   if (factor_type == 1){
     for (step in column_names_factor){
@@ -147,9 +152,27 @@ browser()
     
   }
   
-  
-  # OPTION3 - FOR loop to process all factors in integer per each level
+  # OPTION3 - FOR loop to process all factors as mean per each level
   if (factor_type == 3){
+    for (step in column_names_factor){
+      #define factor levels in the selected column
+      cycle <- levels(unlist(initial_data_updated[,..step]))
+      #FOR loop to process factor levels
+      for(j in cycle){
+        #define the vector with 1 and 0 per each level
+        condition <- unlist(initial_data_updated[,..step]) == j
+        #calculate mean per each level 
+        mean_level <- mean(unlist(gb[condition]), na.rm = FALSE)
+        #populate the temporary vector with level mean
+        tmp_vector[condition] <- mean_level
+
+      }
+      #populate the temporary table
+      tmp_table <- cbind(tmp_table, tmp_vector)
+      #put names to new columns
+      names(tmp_table)[dim(tmp_table)[2]] <- step  
+      
+    }
     
   }
   
