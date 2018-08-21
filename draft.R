@@ -94,20 +94,24 @@ compilePreSummary <- function(){
 
 }
 
-processFactor(initial_data_updated, selected_vars, factor_type = 3, gb)
+binFactor(initial_data_updated, selected_vars, factor_type = 3, gb = gb)
 
-processFactor <- function(initial_data_updated, selected_vars, factor_type = 1, gb){
+binFactor <- function(initial_data_updated, column_classes = NA, column_names = NA, selected_vars = NULL, factor_type = 1, gb){
 browser()
-  #vector of column classes
-  column_classes <- sapply(initial_data_updated, class)
-  #define factor column
-  factors_selected_index  <- which(column_classes == "factor")
-  if (length(factors_selected_index) == 0) break
 
-  #vector of column names for factors
-  column_names <- names(initial_data_updated)
-  column_names_factor <- column_names[factors_selected_index]
-
+  if (is.na(column_classes) | is.na(column_names)){
+      #vector of column classes
+      column_classes <- sapply(initial_data_updated, class)
+      #define factor column
+      factors_selected_index  <- which(column_classes == "factor")
+      #vector of column names for factors
+      column_names <- names(initial_data_updated)
+      if (is.null(selected_vars)){
+        column_names_factor <- column_names[factors_selected_index]
+      } else {
+        column_names_factor <- column_names[column_names[factors_selected_index] %in% selected_vars]
+      }
+  }
   #temporary table to contain transposed vectors
   nrows <- dim(initial_data_updated)[1]
   #temporary table for all options
@@ -176,13 +180,13 @@ browser()
     
   }
   
+  return(list(tmp_table, tmp_level_table))
 }
 
 #the function to preprocess data
 processData <- function(initial_data, selected_vars){
 
 }
-
 
 #the function to bin vector and factor data
 binAll <- function(initial_data_updated, interval_qty, selected_vars){
@@ -251,19 +255,12 @@ binAll <- function(initial_data_updated, interval_qty, selected_vars){
 }
 
 
-#function to bin factor data
-binFactor <- function(vector_to_be_binned){
-
-  binned_table[, j] <<- as.integer(vector_to_be_binned)
-
-}
-
 #function to bin vector data
-binVector <- function( vector_to_be_binned
+binVector <- function(  vector_to_be_binned
                        ,actual_vector_intervals
                        ,actual_vector_intervals_qty
 
-){
+                     ){
 
   #make temporary vector for binning (intervals are marked as integer values)
   mapping_vector <- rep(0, column_length)
