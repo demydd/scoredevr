@@ -22,6 +22,7 @@
 ##############################################################################################################
 
 library(data.table)
+library(stringr)
 library(smbinning)
 
 data(chileancredit)
@@ -30,14 +31,14 @@ new_dir <- "D:\\Demyd\\Personal\\R"
 setwd(new_dir)
 
 #the table to collect aggregated info about interval distribution of each variable
-initial_intervals_summary <- data.frame( variable = as.character()
+initial_intervals_summary <- data.frame(  variable = as.character()
                                          ,interval_type = as.character()
                                          ,interval_number = as.integer()
                                          ,start = as.numeric()
                                          ,end = as.numeric()
                                          ,total = as.integer()
                                          ,good = as.integer()
-)
+                                      )
 
 names(chileancredit)[1:3]
 
@@ -56,9 +57,9 @@ selected_vars <- selectVars(initial_data, c("fgood #cbs1 cbs2 cbs3 dep cbnew cbd
 binned_table <- data.table(matrix(nrow = column_length, ncol = length(selected_vars)))
 #data set to be processed
 initial_data_updated <- as.data.table(chileancredit[,c(names(chileancredit) %in% selected_vars)])
-#row_unique_identifier
-#initial_data_updated[, row_num := .I]
-#initial_data_updated <- cbind(initial_data_updated, gb)
+#processed factor table (ready for binning as a vector)
+binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_type = 1, gb = gb)
+
 binAll(initial_data_updated, interval_qty, selected_vars)
 
 
@@ -94,12 +95,13 @@ compilePreSummary <- function(){
 
 }
 
-binFactor(initial_data_updated, selected_vars, factor_type = 3, gb = gb)
+xxx <- binFactor(initial_data_updated, selected_vars, factor_type = 1, gb = gb)
+
+xxx[[2]]
 
 binFactor <- function(initial_data_updated, column_classes = NA, column_names = NA, selected_vars = NULL, factor_type = 1, gb){
-browser()
+#browser()
 
-  if (is.na(column_classes) | is.na(column_names)){
       #vector of column classes
       column_classes <- sapply(initial_data_updated, class)
       #define factor column
@@ -111,7 +113,7 @@ browser()
       } else {
         column_names_factor <- column_names[column_names[factors_selected_index] %in% selected_vars]
       }
-  }
+
   #temporary table to contain transposed vectors
   nrows <- dim(initial_data_updated)[1]
   #temporary table for all options
@@ -180,7 +182,7 @@ browser()
     
   }
   
-  return(list(tmp_table, tmp_level_table))
+  return(list(tmp_table[, -1], tmp_level_table[, -1]))
 }
 
 #the function to preprocess data
