@@ -32,6 +32,7 @@ setwd(new_dir)
 
 #the table to collect aggregated info about interval distribution of each variable
 initial_intervals_summary <- data.frame(  variable = as.character()
+                                         ,variable_factor = as.character()  
                                          ,interval_type = as.character()
                                          ,interval_number = as.integer()
                                          ,interval_str = as.character()
@@ -150,16 +151,16 @@ browser()
         #put data into interval summary table
         for (inter in 1:2){
           initial_intervals_summary <<- rbind(initial_intervals_summary, 
-                                             data.frame(
-                                                       variable = as.character(paste(step, "_", j, sep = "")) #variable <- 
-                                                      ,interval_type = as.character("factor") #interval_type <- 
-                                                      ,interval_number = as.integer(inter) #interval_number <- 
-                                                      ,interval_str = as.character(paste(inter-1,"=", inter - 1))  #interval_str <-       
-                                                      ,start = as.numeric(inter - 1) #start <- 
-                                                      ,end = as.numeric(inter - 1) #end <- 
-                                                      ,total = as.numeric(sum(condition == inter - 1)) #total <- 
-                                                      ,good = as.numeric(sum(gb[condition == inter - 1])) #good <- 
-                                                      ,bad = as.numeric(sum(condition == inter - 1) - sum(gb[condition == inter - 1])) #bad <- 
+                                             data.frame( variable <- as.character(step)
+                                                        ,variable_factor = as.character(paste(step, "_", j, sep = "")) #variable <- 
+                                                        ,interval_type = as.character("factor") #interval_type <- 
+                                                        ,interval_number = as.integer(inter) #interval_number <- 
+                                                        ,interval_str = as.character(paste(inter-1,"=", inter - 1))  #interval_str <-       
+                                                        ,start = as.numeric(inter - 1) #start <- 
+                                                        ,end = as.numeric(inter - 1) #end <- 
+                                                        ,total = as.numeric(sum(condition == inter - 1)) #total <- 
+                                                        ,good = as.numeric(sum(gb[condition == inter - 1])) #good <- 
+                                                        ,bad = as.numeric(sum(condition == inter - 1) - sum(gb[condition == inter - 1])) #bad <- 
                                                     )
           )
         }
