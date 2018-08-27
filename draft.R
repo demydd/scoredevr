@@ -149,25 +149,48 @@ browser()
         names(tmp_table)[dim(tmp_table)[2]] <- paste(step, "_", j, sep = "") 
 
         #put data into interval summary table
-        for (inter in 1:2){
-          initial_intervals_summary <<- rbind(initial_intervals_summary, 
-                                             data.frame( variable = as.character(step)
-                                                        ,variable_factor = as.character(paste(step, "_", j, sep = "")) #variable <- 
-                                                        ,interval_type = as.character("factor") #interval_type <- 
-                                                        ,interval_number = as.integer(inter) #interval_number <- 
-                                                        ,interval_str = as.character(paste(inter-1,"=", inter - 1))  #interval_str <-       
-                                                        ,start = as.numeric(inter - 1) #start <- 
-                                                        ,end = as.numeric(inter - 1) #end <- 
-                                                        ,total = as.numeric(sum(condition == inter - 1)) #total <- 
-                                                        ,good = as.numeric(sum(gb[condition == inter - 1])) #good <- 
-                                                        ,bad = as.numeric(sum(condition == inter - 1) - sum(gb[condition == inter - 1])) #bad <- 
-                                                    )
-          )
-        }
-        
+        unique_intervals <- unique(condition)
+        for (inter in 1:length(unique_intervals)){
+          #check for NA items
+          if (is.na(unique_intervals[inter])){
+              initial_intervals_summary <<- rbind(initial_intervals_summary, 
+                                                  data.frame(  variable = as.character(step)
+                                                              ,variable_factor = as.character(paste(step, "_", j, sep = "")) #variable <- 
+                                                              ,interval_type = as.character("factor") #interval_type <- 
+                                                              ,interval_number = as.integer(inter) #interval_number <- 
+                                                              ,interval_str = as.character("NA = NA")  #interval_str <-       
+                                                              ,start = NA #start <- 
+                                                              ,end = NA #end <- 
+                                                              ,total = sum(is.na(condition)) #total <- 
+                                                              ,good = sum(gb[is.na(condition)] == 1) #good <- 
+                                                              ,bad = sum(is.na(condition)) - sum(gb[is.na(condition)]) #bad <- 
+                                                            )
+                                                )
+                                               
+            
+                  
+          } else {
+          #check non-NA items
+              initial_intervals_summary <<- rbind(initial_intervals_summary, 
+                                                 data.frame( variable = as.character(step)
+                                                            ,variable_factor = as.character(paste(step, "_", j, sep = "")) #variable <- 
+                                                            ,interval_type = as.character("factor") #interval_type <- 
+                                                            ,interval_number = as.integer(inter) #interval_number <- 
+                                                            ,interval_str = as.character(paste(inter-1,"=", inter - 1))  #interval_str <-       
+                                                            ,start = as.numeric(inter - 1) #start <- 
+                                                            ,end = as.numeric(inter - 1) #end <- 
+                                                            ,total = as.numeric(sum(condition == inter - 1)) #total <- 
+                                                            ,good = as.numeric(sum(gb[condition == inter - 1])) #good <- 
+                                                            ,bad = as.numeric(sum(condition == inter - 1) - sum(gb[condition == inter - 1])) #bad <- 
+                                                          )
+                                                )
+          }
       }
+        
+        
+     }
       
-    }
+   }
     
   }
 
