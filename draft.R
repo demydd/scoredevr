@@ -34,10 +34,12 @@ setwd(new_dir)
 initial_intervals_summary <- data.frame(  variable = as.character()
                                          ,interval_type = as.character()
                                          ,interval_number = as.integer()
+                                         ,interval_str = as.character()
                                          ,start = as.numeric()
                                          ,end = as.numeric()
                                          ,total = as.integer()
                                          ,good = as.integer()
+                                         ,bad = as.integer()
                                       )
 
 names(chileancredit)[1:3]
@@ -59,6 +61,9 @@ binned_table <- data.table(matrix(nrow = column_length, ncol = length(selected_v
 initial_data_updated <- as.data.table(chileancredit[,c(names(chileancredit) %in% selected_vars)])
 #processed factor table (ready for binning as a vector)
 binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_type = 1, gb = gb)
+
+
+
 
 binAll(initial_data_updated, interval_qty, selected_vars)
 
@@ -97,10 +102,14 @@ compilePreSummary <- function(){
 
 xxx <- binFactor(initial_data_updated, selected_vars, factor_type = 1, gb = gb)
 
-xxx[[2]]
 
-binFactor <- function(initial_data_updated, column_classes = NA, column_names = NA, selected_vars = NULL, factor_type = 1, gb){
-#browser()
+binFactor <- function(  initial_data_updated
+                      , column_classes = NA
+                      , column_names = NA
+                      , selected_vars = NULL
+                      , factor_type = 1
+                      , gb){
+browser()
 
       #vector of column classes
       column_classes <- sapply(initial_data_updated, class)
@@ -128,6 +137,8 @@ binFactor <- function(initial_data_updated, column_classes = NA, column_names = 
       #define factor levels in the selected column
       cycle <- levels(unlist(initial_data_updated[,..step]))
       #FOR loop to process factor levels
+      interval_number <- 1
+        
       for(j in cycle){
         #define the vector with 1 and 0 per each level
         condition <- as.integer(unlist(initial_data_updated[,..step]) == j)
@@ -135,6 +146,23 @@ binFactor <- function(initial_data_updated, column_classes = NA, column_names = 
         tmp_table <- cbind(tmp_table, condition)
         #put names to new columns
         names(tmp_table)[dim(tmp_table)[2]] <- paste(step, "_", j, sep = "") 
+
+        #put data into interval summary table
+        for (inter in 1:2){
+          initial_intervals_summary <<- rbind(initial_intervals_summary, 
+                                             data.frame(
+                                                       variable = as.character(paste(step, "_", j, sep = "")) #variable <- 
+                                                      ,interval_type = as.character("factor") #interval_type <- 
+                                                      ,interval_number = as.integer(inter) #interval_number <- 
+                                                      ,interval_str = as.character(paste(inter-1,"=", inter - 1))  #interval_str <-       
+                                                      ,start = as.numeric(inter - 1) #start <- 
+                                                      ,end = as.numeric(inter - 1) #end <- 
+                                                      ,total = as.numeric(sum(condition == inter - 1)) #total <- 
+                                                      ,good = as.numeric(sum(gb[condition == inter - 1])) #good <- 
+                                                      ,bad = as.numeric(sum(condition == inter - 1) - sum(gb[condition == inter - 1])) #bad <- 
+                                                    )
+          )
+        }
         
       }
       
