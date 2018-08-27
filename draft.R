@@ -151,7 +151,7 @@ browser()
         #put data into interval summary table
         for (inter in 1:2){
           initial_intervals_summary <<- rbind(initial_intervals_summary, 
-                                             data.frame( variable <- as.character(step)
+                                             data.frame( variable = as.character(step)
                                                         ,variable_factor = as.character(paste(step, "_", j, sep = "")) #variable <- 
                                                         ,interval_type = as.character("factor") #interval_type <- 
                                                         ,interval_number = as.integer(inter) #interval_number <- 
