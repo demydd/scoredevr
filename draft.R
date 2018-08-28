@@ -185,6 +185,7 @@ browser()
                                                           )
                                                 )
           }
+          
       }
         
         
@@ -205,8 +206,52 @@ browser()
       #add the to integer vector to the level temporary table
       tmp_level_table <- cbind(tmp_level_table, levels(unlist(initial_data_updated[,..step])))
       #add the name of factor converted to integer vector
-      names(tmp_level_table)[dim(tmp_level_table)[2]] <- step 
+      names(tmp_level_table)[dim(tmp_level_table)[2]] <- step
+      
+      #put data into interval summary table
+      unique_intervals <- levels(unlist(initial_data_updated[,..step]))
+      for (inter in 1:length(unique_intervals)){
+        
+        #check for NA items
+        if (is.na(unique_intervals[inter])){
+          initial_intervals_summary <<- rbind(initial_intervals_summary, 
+                                              data.frame(   variable = as.character(step)
+                                                           ,variable_factor = as.character(unique_intervals[inter]) #variable <- 
+                                                           ,interval_type = as.character("factor") #interval_type <- 
+                                                           ,interval_number = as.integer(inter) #interval_number <- 
+                                                           ,interval_str = as.character("NA = NA")  #interval_str <-       
+                                                           ,start = NA #start <- 
+                                                           ,end = NA #end <- 
+                                                           ,total = sum(is.na(selection)) #total <- 
+                                                           ,good = sum(gb[is.na(selection)] == 1) #good <- 
+                                                           ,bad = sum(is.na(selection)) - sum(gb[is.na(selection)]) #bad <- 
+                                              )
+                                            )
+          
+          
+          
+        } else {
+          #check non-NA items
+          initial_intervals_summary <<- rbind(initial_intervals_summary, 
+                                              data.frame(  variable = as.character(step)
+                                                          ,variable_factor = as.character(unique_intervals[inter]) #variable <- 
+                                                          ,interval_type = as.character("factor") #interval_type <- 
+                                                          ,interval_number = as.integer(inter) #interval_number <- 
+                                                          ,interval_str = as.character(paste(inter,"=", inter))  #interval_str <-       
+                                                          ,start = as.numeric(inter) #start <- 
+                                                          ,end = as.numeric(inter) #end <- 
+                                                          ,total = as.numeric(sum(selection == inter)) #total <- 
+                                                          ,good = as.numeric(sum(gb[selection == inter])) #good <- 
+                                                          ,bad = as.numeric(sum(selection == inter) - sum(gb[selection == inter])) #bad <- 
+                                                        )
+                                            )
+        }
+        
+      }    
+      
     }
+        
+    
     
   }
   
