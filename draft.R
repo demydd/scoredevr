@@ -101,7 +101,7 @@ compilePreSummary <- function(){
 
 }
 
-xxx <- binFactor(initial_data_updated, selected_vars, factor_type = 1, gb = gb)
+xxx <- binFactor(initial_data_updated, selected_vars, factor_type = 3, gb = gb)
 
 
 binFactor <- function(  initial_data_updated
