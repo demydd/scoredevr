@@ -26,9 +26,9 @@ library(stringr)
 library(smbinning)
 
 data(chileancredit)
-old_dir <- getwd()
-new_dir <- "D:\\Demyd\\Personal\\R"
-setwd(new_dir)
+#old_dir <- getwd()
+#new_dir <- "D:\\Demyd\\Personal\\R"
+#setwd(new_dir)
 
 #the table to collect aggregated info about interval distribution of each variable
 initial_intervals_summary <- data.frame(  variable = as.character()
@@ -55,13 +55,13 @@ good_bad <- "fgood"
 #GOOD/BAD vector
 gb <- as.vector(initial_data[, ..good_bad])
 #selected variables to bin
-selected_vars <- selectVars(initial_data, c("fgood #cbs1 cbs2 cbs3 dep cbnew cbdpd"), good_bad)
+selected_vars <- selectVars(initial_data, c("fgood #cbs1 cbs2 cbs3 dep cbnew cbdpd pmt"), good_bad)
 #the final output table
 binned_table <- data.table(matrix(nrow = column_length, ncol = length(selected_vars)))
 #data set to be processed
 initial_data_updated <- as.data.table(chileancredit[,c(names(chileancredit) %in% selected_vars)])
 #processed factor table (ready for binning as a vector)
-binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_type = 1, gb = gb)
+binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_type = 2, gb = gb)
 
 
 
@@ -268,6 +268,46 @@ browser()
         mean_level <- mean(unlist(gb[condition]), na.rm = FALSE)
         #populate the temporary vector with level mean
         tmp_vector[condition] <- mean_level
+        
+        #put data into interval summary table
+        inter <- which(j %in% cycle)
+          #check for NA items
+          if (is.na(j)){
+            initial_intervals_summary <<- rbind(initial_intervals_summary, 
+                                                data.frame(   variable = as.character(step)
+                                                              ,variable_factor = as.character(j) #variable <- 
+                                                              ,interval_type = as.character("factor") #interval_type <- 
+                                                              ,interval_number = as.integer(inter) #interval_number <- 
+                                                              ,interval_str = as.character(paste(mean_level,"=",mean_level))  #interval_str <-       
+                                                              ,start = mean_level #start <- 
+                                                              ,end = mean_level #end <- 
+                                                              ,total = sum(is.na(condition)) #total <- 
+                                                              ,good = sum(gb[is.na(condition)] == 1) #good <- 
+                                                              ,bad = sum(is.na(condition)) - sum(gb[is.na(condition)]) #bad <- 
+                                                )
+            )
+            
+            
+            
+          } else {
+            #check non-NA items
+            initial_intervals_summary <<- rbind(initial_intervals_summary, 
+                                                data.frame(  variable = as.character(step)
+                                                             ,variable_factor = as.character(j) #variable <- 
+                                                             ,interval_type = as.character("factor") #interval_type <- 
+                                                             ,interval_number = as.integer(inter) #interval_number <- 
+                                                             ,interval_str = as.character(paste(mean_level,"=",mean_level))  #interval_str <-       
+                                                             ,start = as.numeric(inter) #start <- 
+                                                             ,end = as.numeric(inter) #end <- 
+                                                             ,total = as.numeric(sum(condition == inter)) #total <- 
+                                                             ,good = as.numeric(sum(gb[condition == inter])) #good <- 
+                                                             ,bad = as.numeric(sum(condition == inter) - sum(gb[condition == inter])) #bad <- 
+                                                          )
+                                               )
+          }
+          
+        #}    
+        
 
       }
       #populate the temporary table
