@@ -110,8 +110,20 @@ binFactor <- function(  initial_data_updated
                       , selected_vars = NULL
                       , factor_type = 1
                       , gb){
-browser()
 
+    #the table to collect aggregated info about interval distribution of each variable
+    initial_intervals_summary <- data.frame(  variable = as.character()
+                                              ,variable_factor = as.character()  
+                                              ,interval_type = as.character()
+                                              ,interval_number = as.integer()
+                                              ,interval_str = as.character()
+                                              ,start = as.numeric()
+                                              ,end = as.numeric()
+                                              ,total = as.integer()
+                                              ,good = as.integer()
+                                              ,bad = as.integer()
+    )  
+  
       #vector of column classes
       column_classes <- sapply(initial_data_updated, class)
       #define factor column
@@ -153,7 +165,7 @@ browser()
         for (inter in 1:length(unique_intervals)){
           #check for NA items
           if (is.na(unique_intervals[inter])){
-              initial_intervals_summary <<- rbind(initial_intervals_summary, 
+              initial_intervals_summary <- rbind(initial_intervals_summary, 
                                                   data.frame(  variable = as.character(step)
                                                               ,variable_factor = as.character(paste(step, "_", j, sep = "")) #variable <- 
                                                               ,interval_type = as.character("factor") #interval_type <- 
@@ -171,7 +183,7 @@ browser()
                   
           } else {
           #check non-NA items
-              initial_intervals_summary <<- rbind(initial_intervals_summary, 
+              initial_intervals_summary <- rbind(initial_intervals_summary, 
                                                  data.frame( variable = as.character(step)
                                                             ,variable_factor = as.character(paste(step, "_", j, sep = "")) #variable <- 
                                                             ,interval_type = as.character("factor") #interval_type <- 
@@ -203,10 +215,6 @@ browser()
       selection <- as.integer(unlist(initial_data_updated[,..step])) 
       tmp_table <- cbind(tmp_table,  as.integer(unlist(initial_data_updated[,..step])))
       names(tmp_table)[dim(tmp_table)[2]] <- step
-      #add the to integer vector to the level temporary table
-      tmp_level_table <- cbind(tmp_level_table, levels(unlist(initial_data_updated[,..step])))
-      #add the name of factor converted to integer vector
-      names(tmp_level_table)[dim(tmp_level_table)[2]] <- step
       
       #put data into interval summary table
       unique_intervals <- levels(unlist(initial_data_updated[,..step]))
@@ -214,7 +222,7 @@ browser()
         
         #check for NA items
         if (is.na(unique_intervals[inter])){
-          initial_intervals_summary <<- rbind(initial_intervals_summary, 
+          initial_intervals_summary <- rbind(initial_intervals_summary, 
                                               data.frame(   variable = as.character(step)
                                                            ,variable_factor = as.character(unique_intervals[inter]) #variable <- 
                                                            ,interval_type = as.character("factor") #interval_type <- 
@@ -232,7 +240,7 @@ browser()
           
         } else {
           #check non-NA items
-          initial_intervals_summary <<- rbind(initial_intervals_summary, 
+          initial_intervals_summary <- rbind(initial_intervals_summary, 
                                               data.frame(  variable = as.character(step)
                                                           ,variable_factor = as.character(unique_intervals[inter]) #variable <- 
                                                           ,interval_type = as.character("factor") #interval_type <- 
@@ -255,7 +263,8 @@ browser()
     
   }
   
-  # OPTION3 - FOR loop to process all factors as mean per each level
+  browser()
+    # OPTION3 - FOR loop to process all factors as mean per each level
   if (factor_type == 3){
     for (step in column_names_factor){
       #define factor levels in the selected column
@@ -270,10 +279,10 @@ browser()
         tmp_vector[condition] <- mean_level
         
         #put data into interval summary table
-        inter <- which(j %in% cycle)
+        inter <- which(cycle %in% j)
           #check for NA items
           if (is.na(j)){
-            initial_intervals_summary <<- rbind(initial_intervals_summary, 
+            initial_intervals_summary <- rbind(initial_intervals_summary, 
                                                 data.frame(   variable = as.character(step)
                                                               ,variable_factor = as.character(j) #variable <- 
                                                               ,interval_type = as.character("factor") #interval_type <- 
@@ -283,7 +292,7 @@ browser()
                                                               ,end = mean_level #end <- 
                                                               ,total = sum(is.na(condition)) #total <- 
                                                               ,good = sum(gb[is.na(condition)] == 1) #good <- 
-                                                              ,bad = sum(is.na(condition)) - sum(gb[is.na(condition)]) #bad <- 
+                                                              ,bad = sum(is.na(condition)) - sum(gb[is.na(condition)] == 1) #bad <- 
                                                 )
             )
             
@@ -291,17 +300,17 @@ browser()
             
           } else {
             #check non-NA items
-            initial_intervals_summary <<- rbind(initial_intervals_summary, 
+            initial_intervals_summary <- rbind(initial_intervals_summary, 
                                                 data.frame(  variable = as.character(step)
                                                              ,variable_factor = as.character(j) #variable <- 
                                                              ,interval_type = as.character("factor") #interval_type <- 
                                                              ,interval_number = as.integer(inter) #interval_number <- 
                                                              ,interval_str = as.character(paste(mean_level,"=",mean_level))  #interval_str <-       
-                                                             ,start = as.numeric(inter) #start <- 
-                                                             ,end = as.numeric(inter) #end <- 
-                                                             ,total = as.numeric(sum(condition == inter)) #total <- 
-                                                             ,good = as.numeric(sum(gb[condition == inter])) #good <- 
-                                                             ,bad = as.numeric(sum(condition == inter) - sum(gb[condition == inter])) #bad <- 
+                                                             ,start = mean_level #start <- 
+                                                             ,end = mean_level #end <- 
+                                                             ,total = sum(condition) #total <- 
+                                                             ,good = sum(gb[condition == 1]) #good <- 
+                                                             ,bad = sum(condition) - sum(gb[condition == 1]) #bad <- 
                                                           )
                                                )
           }
@@ -318,8 +327,9 @@ browser()
     }
     
   }
-  
-  return(list(tmp_table[, -1], tmp_level_table[, -1]))
+
+  browser()  
+  return(list(tmp_table[, -1], initial_intervals_summary))
 }
 
 #the function to preprocess data
