@@ -61,12 +61,12 @@ binned_table <- data.table(matrix(nrow = column_length, ncol = length(selected_v
 #data set to be processed
 initial_data_updated <- as.data.table(chileancredit[,c(names(chileancredit) %in% selected_vars)])
 #processed factor table (ready for binning as a vector)
-binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_type = 2, gb = gb)
+binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_type = 3, gb = gb)
 
 
 
 
-binAll(initial_data_updated, interval_qty, selected_vars)
+binVector(initial_data_updated, interval_qty, selected_vars)
 
 
 
@@ -101,7 +101,7 @@ compilePreSummary <- function(){
 
 }
 
-xxx <- binFactor(initial_data_updated, selected_vars, factor_type = 3, gb = gb)
+xxx <- binFactor(initial_data_updated, selected_vars, factor_type = 3, gb = gb, rounding = 6)
 
 
 binFactor <- function(  initial_data_updated
@@ -109,7 +109,8 @@ binFactor <- function(  initial_data_updated
                       , column_names = NA
                       , selected_vars = NULL
                       , factor_type = 1
-                      , gb){
+                      , gb
+                      , rounding = 4){
 
     #the table to collect aggregated info about interval distribution of each variable
     initial_intervals_summary <- data.frame(  variable = as.character()
@@ -122,7 +123,7 @@ binFactor <- function(  initial_data_updated
                                               ,total = as.integer()
                                               ,good = as.integer()
                                               ,bad = as.integer()
-    )  
+                                           )  
   
       #vector of column classes
       column_classes <- sapply(initial_data_updated, class)
@@ -263,7 +264,6 @@ binFactor <- function(  initial_data_updated
     
   }
   
-  browser()
     # OPTION3 - FOR loop to process all factors as mean per each level
   if (factor_type == 3){
     for (step in column_names_factor){
@@ -274,7 +274,7 @@ binFactor <- function(  initial_data_updated
         #define the vector with 1 and 0 per each level
         condition <- unlist(initial_data_updated[,..step]) == j
         #calculate mean per each level 
-        mean_level <- mean(unlist(gb[condition]), na.rm = FALSE)
+        mean_level <- round(mean(unlist(gb[condition]), na.rm = FALSE), rounding)
         #populate the temporary vector with level mean
         tmp_vector[condition] <- mean_level
         
@@ -328,7 +328,7 @@ binFactor <- function(  initial_data_updated
     
   }
 
-  browser()  
+  #return binned factor portfolio and interval summary.  
   return(list(tmp_table[, -1], initial_intervals_summary))
 }
 
@@ -338,12 +338,25 @@ processData <- function(initial_data, selected_vars){
 }
 
 #the function to bin vector and factor data
-binAll <- function(initial_data_updated, interval_qty, selected_vars){
+binVector <- function(initial_data_updated, interval_qty, selected_vars){
   browser()
+  
+  initial_intervals_summary <- data.frame(   variable = as.character()
+                                            ,variable_factor = as.character()  
+                                            ,interval_type = as.character()
+                                            ,interval_number = as.integer()
+                                            ,interval_str = as.character()
+                                            ,start = as.numeric()
+                                            ,end = as.numeric()
+                                            ,total = as.integer()
+                                            ,good = as.integer()
+                                            ,bad = as.integer()
+                                        )  
+  
   #vector of column classes
   column_classes <- sapply(initial_data_updated, class)
   #vector of column names
-  column_names <- names(initial_data_updated)
+  column_names <- names(initial_data_updated)[column_classes != 'factor']
   attribute_qty <- length(column_names)
 
   if (interval_qty > column_length) {
@@ -394,7 +407,7 @@ binAll <- function(initial_data_updated, interval_qty, selected_vars){
 
     t(actual_vector_intervals)
 
-    binned_table[, j] <<- binVector(
+    binned_table[, j] <<- binColumn(
       sorted_vector_updated
       ,actual_vector_intervals
       ,actual_vector_intervals_qty
@@ -405,7 +418,7 @@ binAll <- function(initial_data_updated, interval_qty, selected_vars){
 
 
 #function to bin vector data
-binVector <- function(  vector_to_be_binned
+binColumn <- function(  vector_to_be_binned
                        ,actual_vector_intervals
                        ,actual_vector_intervals_qty
 
