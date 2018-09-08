@@ -53,7 +53,7 @@ column_length <- dim(initial_data)[1]
 #GOOD/BAD column name
 good_bad <- "fgood"
 #GOOD/BAD vector
-gb <- as.vector(initial_data[, ..good_bad])
+gb <- as.vector(unlist(initial_data[, ..good_bad]))
 #selected variables to bin
 selected_vars <- selectVars(initial_data, c("fgood #cbs1 cbs2 cbs3 dep cbnew cbdpd pmt"), good_bad)
 #the final output table
@@ -66,7 +66,7 @@ binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_typ
 
 
 
-binVector(initial_data_updated, interval_qty, selected_vars)
+binVector(initial_data_updated, interval_qty, selected_vars, gb)
 
 
 
@@ -294,7 +294,7 @@ binFactor <- function(  initial_data_updated
                                                               ,good = sum(gb[is.na(condition)] == 1) #good <- 
                                                               ,bad = sum(is.na(condition)) - sum(gb[is.na(condition)] == 1) #bad <- 
                                                 )
-            )
+                                              )
             
             
             
@@ -338,7 +338,7 @@ processData <- function(initial_data, selected_vars){
 }
 
 #the function to bin vector and factor data
-binVector <- function(initial_data_updated, interval_qty, selected_vars){
+binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
   browser()
   
   initial_intervals_summary <- data.frame(   variable = as.character()
@@ -355,8 +355,12 @@ binVector <- function(initial_data_updated, interval_qty, selected_vars){
   
   #vector of column classes
   column_classes <- sapply(initial_data_updated, class)
+  #reduce the input data by factor columns
+  column_classes <- column_classes[column_classes != 'factor']
+
   #vector of column names
-  column_names <- names(initial_data_updated)[column_classes != 'factor']
+  column_names <- names(initial_data_updated)
+  initial_data_updated <- initial_data_updated[ , ..column_names]
   attribute_qty <- length(column_names)
 
   if (interval_qty > column_length) {
@@ -405,13 +409,14 @@ binVector <- function(initial_data_updated, interval_qty, selected_vars){
 
     setnames(binned_table, colnames(binned_table), column_names)
 
-    t(actual_vector_intervals)
-
     binned_table[, j] <<- binColumn(
-      sorted_vector_updated
-      ,actual_vector_intervals
-      ,actual_vector_intervals_qty
-    )
+                                     vector_to_be_binned = sorted_vector_updated
+                                    ,actual_vector_intervals = actual_vector_intervals
+                                    ,actual_vector_intervals_qty = actual_vector_intervals_qty
+                                    ,gb = gb
+                                    ,column_classes = column_classes[j]
+                                    ,column_names = column_names[j]
+                                  )
 
   }
 }
@@ -421,9 +426,26 @@ binVector <- function(initial_data_updated, interval_qty, selected_vars){
 binColumn <- function(  vector_to_be_binned
                        ,actual_vector_intervals
                        ,actual_vector_intervals_qty
+                       ,gb
+                       ,column_classes
+                       ,column_names
+                       ,env = parent.frame()
 
                      ){
-
+  
+  #temporary nterval summary
+  initial_intervals_summary <- data.frame(   variable = as.character()
+                                             ,variable_factor = as.character()  
+                                             ,interval_type = as.character()
+                                             ,interval_number = as.integer()
+                                             ,interval_str = as.character()
+                                             ,start = as.numeric()
+                                             ,end = as.numeric()
+                                             ,total = as.integer()
+                                             ,good = as.integer()
+                                             ,bad = as.integer()
+                                          )  
+  
   #make temporary vector for binning (intervals are marked as integer values)
   mapping_vector <- rep(0, column_length)
 
@@ -435,26 +457,74 @@ binColumn <- function(  vector_to_be_binned
 
       mapping_vector[vector_to_be_binned < actual_vector_intervals[2, i]] <- i
 
+      total <- sum(vector_to_be_binned < actual_vector_intervals[2, i])
+      good <- sum(gb[vector_to_be_binned < actual_vector_intervals[2, i]] == 1)
+      initial_intervals_summary <- rbind(initial_intervals_summary, 
+                                         data.frame(   variable = column_names
+                                                      ,variable_factor = NA #variable <- 
+                                                      ,interval_type = column_classes #interval_type <- 
+                                                      ,interval_number = i #interval_number <- 
+                                                      ,interval_str = paste(">=", actual_vector_intervals[1, i], "<", actual_vector_intervals[2, i])  #interval_str <-       
+                                                      ,start = actual_vector_intervals[1, i] #start <- 
+                                                      ,end = actual_vector_intervals[2, i] #end <- 
+                                                      ,total =  total #total <- 
+                                                      ,good = good #good <- 
+                                                      ,bad = total - good #bad <- 
+                                                  )
+                                        )             
+
     }
 
     #check the last interval
-    if(i == actual_vector_intervals_qty && sum(vector_to_be_binned > actual_vector_intervals[2, i]) > 0){
+    if(i == actual_vector_intervals_qty && sum(vector_to_be_binned > actual_vector_intervals[1, i]) > 0){
 
-      mapping_vector[vector_to_be_binned > actual_vector_intervals[2, actual_vector_intervals_qty]] <- i
+      mapping_vector[vector_to_be_binned > actual_vector_intervals[1, actual_vector_intervals_qty]] <- i
+      
+      total <- sum(vector_to_be_binned > actual_vector_intervals[1, actual_vector_intervals_qty])
+      good <- sum(gb[vector_to_be_binned > actual_vector_intervals[1, actual_vector_intervals_qty]] == 1)
+      initial_intervals_summary <- rbind(initial_intervals_summary, 
+                                         data.frame(    variable = column_names
+                                                       ,variable_factor = NA #variable <- 
+                                                       ,interval_type = column_classes #interval_type <- 
+                                                       ,interval_number = i #interval_number <- 
+                                                       ,interval_str = paste(">=", actual_vector_intervals[1, i], "<", actual_vector_intervals[2, i])  #interval_str <-       
+                                                       ,start = actual_vector_intervals[1, i] #start <- 
+                                                       ,end = actual_vector_intervals[2, i] #end <- 
+                                                       ,total =  total #total <- 
+                                                       ,good = good #good <- 
+                                                       ,bad = total - good #bad <- 
+                                                  )
+                                        )       
 
-    }
+
+          }
 
     #check the rest of items
     if (i != 1 && i < actual_vector_intervals_qty){
 
       mapping_vector[vector_to_be_binned >= actual_vector_intervals[1, i] & vector_to_be_binned < actual_vector_intervals[2, i]] <- i
 
+      total <- sum(vector_to_be_binned >= actual_vector_intervals[1, i] & vector_to_be_binned < actual_vector_intervals[2, i])
+      good <- sum(gb[vector_to_be_binned >= actual_vector_intervals[1, i] & vector_to_be_binned < actual_vector_intervals[2, i]] == 1)
+      initial_intervals_summary <- rbind(initial_intervals_summary, 
+                                         data.frame(   variable = column_names
+                                                       ,variable_factor = NA #variable <- 
+                                                       ,interval_type = column_classes #interval_type <- 
+                                                       ,interval_number = i #interval_number <- 
+                                                       ,interval_str = paste(">=", actual_vector_intervals[1, i], "<", actual_vector_intervals[2, i])  #interval_str <-       
+                                                       ,start = actual_vector_intervals[1, i] #start <- 
+                                                       ,end = actual_vector_intervals[2, i] #end <- 
+                                                       ,total =  total #total <- 
+                                                       ,good = good #good <- 
+                                                       ,bad = total - good #bad <- 
+                                         )
+      )       
+      
     }
-
 
   }
 
-  return(mapping_vector)
+  return(list(mapping_vector, initial_intervals_summary[ , -1]))
   #binned_table[, j] <<- mapping_vector
 
 }
