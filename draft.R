@@ -58,19 +58,21 @@ gb <- as.vector(unlist(initial_data[, ..good_bad]))
 selected_vars <- selectVars(initial_data, c("fgood #cbs1 cbs2 #cbs3 #dep #cbnew #cbdpd #pmt"), good_bad)
 #data set to be processed
 initial_data_updated <- as.data.table(chileancredit[,c(names(chileancredit) %in% selected_vars)])
+names(initial_data_updated) <- selected_vars
 #processed factor table (ready for binning as a vector)
 binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_type = 3, gb = gb)
 
-sum(is.na(initial_data_updated$cbs2))
-sum(is.na(initial_data_updated$cbs2))
+#sum(is.na(initial_data_updated$cbs2))
+#sum(is.na(initial_data_updated$cbs2))
 
-unique(initial_data_updated$cbs2)
+#unique(initial_data_updated$cbs2)
 
 test <- binVector(initial_data_updated, interval_qty, selected_vars, gb)
 
 summary <- test[[2]]
 data <- test[[1]]
 data <- cbind(data, gb)
+
 
 sum(is.na(data$dep))
 sum(summary$total)
@@ -475,12 +477,12 @@ binColumn <- function(  vector_to_be_binned
   for (i in 1:actual_vector_intervals_qty){
 
     #check the first interval
-    if(i == 1 && sum(vector_to_be_binned < actual_vector_intervals[2, i]) > 0){
+    if(i == 1 && sum(vector_to_be_binned[!is.na(vector_to_be_binned)] < actual_vector_intervals[2, i]) > 0){
 
-      mapping_vector[vector_to_be_binned < actual_vector_intervals[2, i]] <- i
+      mapping_vector[vector_to_be_binned[!is.na(vector_to_be_binned)] < actual_vector_intervals[2, i]] <- i
 
-      total <- sum(vector_to_be_binned < actual_vector_intervals[2, i])
-      good <- sum(gb[vector_to_be_binned < actual_vector_intervals[2, i]] == 1)
+      total <- sum(vector_to_be_binned[!is.na(vector_to_be_binned)] < actual_vector_intervals[2, i])
+      good <- sum(gb[vector_to_be_binned[!is.na(vector_to_be_binned)] < actual_vector_intervals[2, i]] == 1)
       initial_intervals_summary <- rbind(initial_intervals_summary, 
                                          data.frame(   variable = column_names
                                                       ,variable_factor = NA #variable <- 
@@ -498,12 +500,12 @@ binColumn <- function(  vector_to_be_binned
     }
 
     #check the last interval
-    if(i == actual_vector_intervals_qty && sum(vector_to_be_binned > actual_vector_intervals[1, i]) > 0){
+    if(i == actual_vector_intervals_qty - 1 && sum(vector_to_be_binned[!is.na(vector_to_be_binned)] > actual_vector_intervals[1, i]) > 0){
 
-      mapping_vector[vector_to_be_binned >= actual_vector_intervals[1, actual_vector_intervals_qty]] <- i
+      mapping_vector[vector_to_be_binned[!is.na(vector_to_be_binned)] >= actual_vector_intervals[1, actual_vector_intervals_qty - 1]] <- i
       
-      total <- sum(vector_to_be_binned > actual_vector_intervals[1, actual_vector_intervals_qty])
-      good <- sum(gb[vector_to_be_binned > actual_vector_intervals[1, actual_vector_intervals_qty]] == 1)
+      total <- sum(vector_to_be_binned[!is.na(vector_to_be_binned)] > actual_vector_intervals[1, actual_vector_intervals_qty - 1])
+      good <- sum(gb[vector_to_be_binned[!is.na(vector_to_be_binned)] > actual_vector_intervals[1, actual_vector_intervals_qty - 1]] == 1)
       initial_intervals_summary <- rbind(initial_intervals_summary, 
                                          data.frame(    variable = column_names
                                                        ,variable_factor = NA #variable <- 
@@ -522,12 +524,12 @@ binColumn <- function(  vector_to_be_binned
     }
 
     #check the rest of items
-    if (i != 1 && i < actual_vector_intervals_qty){
+    if (i != 1 && i < actual_vector_intervals_qty - 1){
 
-      mapping_vector[vector_to_be_binned >= actual_vector_intervals[1, i] & vector_to_be_binned < actual_vector_intervals[2, i]] <- i
+      mapping_vector[vector_to_be_binned[!is.na(vector_to_be_binned)] >= actual_vector_intervals[1, i] & vector_to_be_binned[!is.na(vector_to_be_binned)] < actual_vector_intervals[2, i]] <- i
 
-      total <- sum(vector_to_be_binned >= actual_vector_intervals[1, i] & vector_to_be_binned < actual_vector_intervals[2, i])
-      good <- sum(gb[vector_to_be_binned >= actual_vector_intervals[1, i] & vector_to_be_binned < actual_vector_intervals[2, i]] == 1)
+      total <- sum(vector_to_be_binned[!is.na(vector_to_be_binned)] >= actual_vector_intervals[1, i] & vector_to_be_binned[!is.na(vector_to_be_binned)] < actual_vector_intervals[2, i])
+      good <- sum(gb[vector_to_be_binned[!is.na(vector_to_be_binned)] >= actual_vector_intervals[1, i] & vector_to_be_binned[!is.na(vector_to_be_binned)] < actual_vector_intervals[2, i]] == 1)
       initial_intervals_summary <- rbind(initial_intervals_summary, 
                                          data.frame(   variable = column_names
                                                        ,variable_factor = NA #variable <- 
@@ -545,7 +547,7 @@ binColumn <- function(  vector_to_be_binned
     }
     
     #check NA values
-    if(sum(is.na(vector_to_be_binned)) > 0){
+    if(sum(is.na(vector_to_be_binned)) > 0 & i == actual_vector_intervals_qty){
       
       mapping_vector[is.na(vector_to_be_binned)] <- i
       
@@ -580,7 +582,7 @@ binColumn <- function(  vector_to_be_binned
 
 
 #rm(list=ls())
-#rm()
+#gc()
 
 
 
