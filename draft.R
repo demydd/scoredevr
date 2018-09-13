@@ -1,25 +1,3 @@
-#install.packages("data.table")
-#library(data.table)
-
-#old_dir <- getwd()
-#new_dir <- "D:\\Demyd\\Personal\\R"
-#setwd(new_dir)
-
-#file_output <- fread("source.txt")
-#str(file_output)
-
-#as.Date(file_output$BIRTHDAY, format = "%d %m %Y")
-
-#as.Date(file_output$BIRTHDAY, format = "%d %m %Y")
-
-#install.packages("stringr")
-#library(stringr)
-
-#mmm <- str_replace(file_output$BIRTHDAY, ".", "/")
-
-#file_output$BIRTHDAY <- as.Date(chartr(".", "/", file_output$BIRTHDAY), format = "%d/%m/ %Y")
-
-##############################################################################################################
 
 library(data.table)
 library(stringr)
@@ -55,39 +33,20 @@ good_bad <- "fgood"
 #GOOD/BAD vector
 gb <- as.vector(unlist(initial_data[, ..good_bad]))
 #selected variables to bin
-selected_vars <- selectVars(initial_data, c("fgood #cbs1 cbs2 #cbs3 #dep #cbnew #cbdpd #pmt"), good_bad)
+selected_vars <- selectVars(initial_data, c("fgood cbs1 cbs2 cbs3 dep cbnew cbdpd pmt"), good_bad)
 #data set to be processed
 initial_data_updated <- as.data.table(chileancredit[,c(names(chileancredit) %in% selected_vars)])
 names(initial_data_updated) <- selected_vars
 #processed factor table (ready for binning as a vector)
 binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_type = 3, gb = gb)
 
-#sum(is.na(initial_data_updated$cbs2))
-#sum(is.na(initial_data_updated$cbs2))
+binned_vectors <- binVector(initial_data_updated, interval_qty, selected_vars, gb)
 
-#unique(initial_data_updated$cbs2)
+#overall interval summary
+interval_summary <- rbind(binned_factor_table[[2]], binned_vectors[[2]])
+#overall binned portfolio
+binned_portfolio <- cbind(binned_factor_table[[1]], binned_vectors[[1]])
 
-test <- binVector(initial_data_updated, interval_qty, selected_vars, gb)
-
-summary <- test[[2]]
-data <- test[[1]]
-data <- cbind(data, gb, 1)
-
-data <- data[ , .N, by = cbs2]
-  
-sum(data$N)
-cbind(data, summary$total)
-
-
-data[,sum(V3), by = cbs2]
-
-sum(is.na(data$dep))
-sum(summary$total)
-
-sum(is.na(data$dep))
-unique(data$cbs2)
-
-xxx <- binFactor(initial_data_updated, selected_vars, factor_type = 3, gb = gb, rounding = 6)
 
 
 ############################################################################################################
@@ -369,6 +328,7 @@ binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
                                             ,good = as.integer()
                                             ,bad = as.integer()
                                         )  
+  
   #vector of column classes
   column_classes <- sapply(initial_data_updated, class)
   #reduce the input data by factor columns
