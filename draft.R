@@ -50,7 +50,6 @@ binned_portfolio <- cbind(binned_factor_table[[1]], binned_vectors[[1]])
 
 
 ############################################################################################################
-
 #select the necessary variable and reduce the data table
 selectVars <- function(initial_data,  column_names, good_bad){
 
@@ -315,8 +314,7 @@ processData <- function(initial_data, selected_vars){
 
 #the function to bin vector and factor data
 binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
-  browser()
-  
+
   initial_intervals_summary <- data.frame(   variable = as.character()
                                             ,variable_factor = as.character()  
                                             ,interval_type = as.character()
@@ -332,7 +330,7 @@ binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
   #vector of column classes
   column_classes <- sapply(initial_data_updated, class)
   #reduce the input data by factor columns
-  index <- which(column_classes %in% c("integer", "numeric", "complex"))
+  index <- which(column_classes %in% c("integer", "numeric", "complex", "double"))
   column_classes <- column_classes[index]
 
   #vector of column names[index]
@@ -539,14 +537,51 @@ binColumn <- function(  vector_to_be_binned
     
     
   }
-  browser()  
- 
 
   return(list(mapping_vector, initial_intervals_summary))
   #binned_table[, j] <<- mapping_vector
-
 }
 
+#calculate WOE and IV
+calcWOEIV <- function(interval_summary, rounding = 4){
+  #convert to data.table
+  interval_summary <- as.data.table(interval_summary)
+  #calculate basic values - part 1
+  interval_summary[ , `:=`(  total_cum = round(cumsum(total), rounding) 
+                             ,good_cum = round(cumsum(good), rounding)
+                             ,bad_cum = round(cumsum(bad), rounding)
+                             ,good_rate = round(good/total, rounding)
+                             ,bad_rate = round(bad/total, rounding)
+                           )
+                     , by = .(variable)
+                  ]
+  #calculate basic values (cumulative) - part 2
+  interval_summary[ , `:=`(  good_rate_cum = round(good_cum/total_cum, rounding)
+                             ,bad_rate_cum = round(bad_cum/total_cum, rounding)
+                             ,good_odds = ifelse(bad == 0, 0, round(good/bad, rounding))
+                             
+                           )
+                     , by = .(variable)
+                  ]
+  #calculate WOE
+  interval_summary[ , `:=`(woe = ifelse(is.infinite(log(good_odds)), 0, round(log(good_odds), rounding)))
+                     , by = .(variable)
+                  ]
+  #calculate IV per interval
+  interval_summary[ , `:=`(IV = round(ifelse(is.infinite(woe * (good_rate - bad_rate)), 0, woe * (good_rate - bad_rate)), rounding))
+                     , by = .(variable)
+                  ]
+  #calculate IV cumulative 
+  interval_summary[ , `:=`(IV_cum = round(ifelse(is.infinite(woe * (good_rate - bad_rate)), 0, sum(woe * (good_rate - bad_rate))), rounding))
+                     , by = .(variable)
+                  ]
+  
+  return (interval_summary)
+  
+}
+
+
+calcWOEIV(calcWOEIV)
 
 #rm(list=ls())
 #gc()
