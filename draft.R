@@ -48,7 +48,6 @@ interval_summary <- rbind(binned_factor_table[[2]], binned_vectors[[2]])
 binned_portfolio <- cbind(binned_factor_table[[1]], binned_vectors[[1]])
 
 
-
 ############################################################################################################
 #select the necessary variable and reduce the data table
 selectVars <- function(initial_data,  column_names, good_bad){
@@ -75,9 +74,6 @@ selectVars <- function(initial_data,  column_names, good_bad){
 
 }
 
-compilePreSummary <- function(){
-
-}
 
 binFactor <- function(  initial_data_updated
                       , column_classes = NA
@@ -131,6 +127,8 @@ binFactor <- function(  initial_data_updated
       for(j in cycle){
         #define the vector with 1 and 0 per each level
         condition <- as.integer(unlist(initial_data_updated[,..step]) == j)
+        condition[condition == 1] <- 2
+        condition[condition == 0] <- 1
         #populate the temporary table
         tmp_table <- cbind(tmp_table, condition)
         #put names to new columns
@@ -250,9 +248,10 @@ binFactor <- function(  initial_data_updated
         condition <- unlist(initial_data_updated[,..step]) == j
         #calculate mean per each level 
         mean_level <- round(mean(unlist(gb[condition]), na.rm = FALSE), rounding)
-        #populate the temporary vector with level mean
-        tmp_vector[condition] <- mean_level
-        
+        #populate the temporary vector with interval numberlevel mean
+        inter <- which(cycle %in% j)
+        tmp_vector[condition] <- inter 
+
         #put data into interval summary table
         inter <- which(cycle %in% j)
           #check for NA items
@@ -305,11 +304,6 @@ binFactor <- function(  initial_data_updated
 
   #return binned factor portfolio and interval summary.  
   return(list(tmp_table[, -1], initial_intervals_summary))
-}
-
-#the function to preprocess data
-processData <- function(initial_data, selected_vars){
-
 }
 
 #the function to bin vector and factor data
