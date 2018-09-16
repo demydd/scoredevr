@@ -38,7 +38,7 @@ selected_vars <- selectVars(initial_data, c("fgood cbs1 cbs2 cbs3 dep cbnew cbdp
 initial_data_updated <- as.data.table(chileancredit[,c(names(chileancredit) %in% selected_vars)])
 names(initial_data_updated) <- selected_vars
 #processed factor table (ready for binning as a vector)
-binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_type = 3, gb = gb)
+binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_type = 1, gb = gb)
 
 binned_vectors <- binVector(initial_data_updated, interval_qty, selected_vars, gb)
 
@@ -46,6 +46,10 @@ binned_vectors <- binVector(initial_data_updated, interval_qty, selected_vars, g
 interval_summary <- rbind(binned_factor_table[[2]], binned_vectors[[2]])
 #overall binned portfolio
 binned_portfolio <- cbind(binned_factor_table[[1]], binned_vectors[[1]])
+#add WOE and IV values to interval summary
+interval_summary_WOE_IV <- calcWOEIV(interval_summary)
+#bin portfolio with WOE values
+binned_portfolio_WOE <- binPortfolioWoe(binned_portfolio, interval_summary_WOE_IV)
 
 
 ############################################################################################################
@@ -544,14 +548,14 @@ calcWOEIV <- function(interval_summary, rounding = 4){
   interval_summary[ , `:=`(  total_cum = round(cumsum(total), rounding) 
                              ,good_cum = round(cumsum(good), rounding)
                              ,bad_cum = round(cumsum(bad), rounding)
-                             ,good_rate = round(good/total, rounding)
-                             ,bad_rate = round(bad/total, rounding)
+                             ,good_rate = ifelse(total == 0, 0, round(good/total, rounding))
+                             ,bad_rate = ifelse(total == 0, 0, round(bad/total, rounding))
                            )
                      , by = .(variable)
                   ]
   #calculate basic values (cumulative) - part 2
-  interval_summary[ , `:=`(  good_rate_cum = round(good_cum/total_cum, rounding)
-                             ,bad_rate_cum = round(bad_cum/total_cum, rounding)
+  interval_summary[ , `:=`(   good_rate_cum = ifelse(total_cum == 0, 0, round(good_cum/total_cum, rounding))
+                             ,bad_rate_cum = ifelse(total_cum, 0, round(bad_cum/total_cum, rounding))
                              ,good_odds = ifelse(bad == 0, 0, round(good/bad, rounding))
                              
                            )
@@ -575,7 +579,49 @@ calcWOEIV <- function(interval_summary, rounding = 4){
 }
 
 
-calcWOEIV(calcWOEIV)
+binPortfolioWoe <- function(binned_portfolio, interval_summary_WOE_IV ){
+  
+  binned_portfolio_WOE <- copy(binned_portfolio)
+  column_names <- names( binned_portfolio_WOE)
+  
+  interval_summary <- as.data.table(interval_summary_WOE_IV)
+  #binWOE factor columns of option1 (1 or 0) - paste proper WOE values
+  if(sum(column_names %in% interval_summary$variable_factor) > 0){
+    
+    
+    for(j in column_names[column_names %in% interval_summary$variable_factor]){
+      #temporary data table per a column 
+      interval_summary_tmp <- interval_summary[variable_factor == eval(j), ]
+      #set keys
+      setkeyv(interval_summary_tmp, c("interval_number"))
+      setkeyv(binned_portfolio_WOE_WOE, eval(j))
+      #transfer selected data to temporary var
+      tmp <- binned_portfolio_WOE_WOE[, ..j][interval_summary_tmp[variable_factor == eval(j), ], eval(j) := i.woe]
+      binned_portfolio_WOE[, eval(j)] <- tmp
+        
+    }
+  } else {#binWOE from variable 
+      
+      for(j in column_names[!(column_names %in% interval_summary$variable_factor)]){
+        
+        interval_summary_tmp <- interval_summary[variable == eval(j), ]
+        setkeyv(interval_summary_tmp, c("interval_number"))
+        setkeyv(binned_portfolio_WOE, eval(j))
+        
+        tmp <- binned_portfolio_WOE[, ..j][interval_summary_tmp[variable == eval(j), ], eval(j) := i.woe]
+        binned_portfolio_WOE[, eval(j)] <- tmp     
+      
+    }
+    
+  }
+    
+    return(binned_portfolio_WOE)
+    
+}
+
+
+
+xxx <- calcWOEIV(interval_summary)
 
 #rm(list=ls())
 #gc()
