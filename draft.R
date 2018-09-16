@@ -2,6 +2,7 @@
 library(data.table)
 library(stringr)
 library(smbinning)
+library(caret)
 
 data(chileancredit)
 #old_dir <- getwd()
@@ -594,14 +595,16 @@ binPortfolioWoe <- function(binned_portfolio, interval_summary_WOE_IV ){
       interval_summary_tmp <- interval_summary[variable_factor == eval(j), ]
       #set keys
       setkeyv(interval_summary_tmp, c("interval_number"))
-      setkeyv(binned_portfolio_WOE_WOE, eval(j))
+      setkeyv(binned_portfolio_WOE, eval(j))
       #transfer selected data to temporary var
-      tmp <- binned_portfolio_WOE_WOE[, ..j][interval_summary_tmp[variable_factor == eval(j), ], eval(j) := i.woe]
+      tmp <- binned_portfolio_WOE[, ..j][interval_summary_tmp[variable_factor == eval(j), ], eval(j) := i.woe]
       binned_portfolio_WOE[, eval(j)] <- tmp
         
     }
-  } else {#binWOE from variable 
-      
+  } 
+  #binWOE non-factor columns (option1)- paste proper WOE values
+  if(sum(!(column_names %in% interval_summary$variable_factor)) > 0){
+      #binWOE from variable 
       for(j in column_names[!(column_names %in% interval_summary$variable_factor)]){
         
         interval_summary_tmp <- interval_summary[variable == eval(j), ]
@@ -611,21 +614,65 @@ binPortfolioWoe <- function(binned_portfolio, interval_summary_WOE_IV ){
         tmp <- binned_portfolio_WOE[, ..j][interval_summary_tmp[variable == eval(j), ], eval(j) := i.woe]
         binned_portfolio_WOE[, eval(j)] <- tmp     
       
-    }
+      }
     
   }
     
     return(binned_portfolio_WOE)
-    
 }
 
+
+calcCorrelation <- function(binned_portfolio_WOE, cut_off_cor = 0.5){
+  browser()
+  #calculate the initial correlation matrix (with NA)
+  df2 <- cor(binned_portfolio_WOE)
+  print("Correlation calculated.")
+  #to remove NA from the correlation matrix
+  i <- 1
+  for (i in 1:ncol(df2)){
+    m <- is.na(df2[,i])
+    index <- which(m %in% c(TRUE))
+    df2[index,i] <- 0
+  }
+  
+  df2 <- as.matrix(df2)
+  #to remove zero columns (factors)
+  x <- apply(df2, 2, sum)<=1
+  index <- which(x %in% c(TRUE))
+  df2 <- as.data.frame(df2)
+  
+  if (sum(x)!=0){
+    df3 <- df2[-index,-index]
+  }else{
+    df3 <- df2
+  }
+
+  #to define factors(columns) to be removed due to cut off defined
+  hc <- findCorrelation(as.matrix(df3), cutoff=cut_off_cor) # putt any value as a "cutoff"
+  hc <- sort(hc)
+  
+  if (length(hc)==0){
+  
+    return(df3)
+
+  }else{
+    
+    return(df3[-hc,-hc])
+  
+  }
+  
+}
 
 
 xxx <- calcWOEIV(interval_summary)
 
+xxx <- calcCorrelation(binned_portfolio_WOE, cut_off_cor = -0.3) 
+
 #rm(list=ls())
 #gc()
 
-
-
-
+install.packages("SciViews")
+library(SciViews)
+cor <- correlation(binned_portfolio_WOE, y = gb, use = "everything", cutoff = 0.2)
+class(cor)
+abs(cor) > abs(0.2)
