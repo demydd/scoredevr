@@ -11,7 +11,8 @@ data(chileancredit)
 
 #the table to collect aggregated info about interval distribution of each variable
 initial_intervals_summary <- data.frame(  variable = as.character()
-                                         ,variable_factor = as.character()  
+                                         ,variable_factor = as.character()
+                                         ,column_final = as.character()
                                          ,interval_type = as.character()
                                          ,interval_number = as.integer()
                                          ,interval_str = as.character()
@@ -90,7 +91,8 @@ binFactor <- function(  initial_data_updated
 
     #the table to collect aggregated info about interval distribution of each variable
     initial_intervals_summary <- data.frame(  variable = as.character()
-                                              ,variable_factor = as.character()  
+                                              ,variable_factor = as.character()
+                                              ,column_final = as.character()
                                               ,interval_type = as.character()
                                               ,interval_number = as.integer()
                                               ,interval_str = as.character()
@@ -146,7 +148,8 @@ binFactor <- function(  initial_data_updated
           if (is.na(unique_intervals[inter])){
               initial_intervals_summary <- rbind(initial_intervals_summary, 
                                                   data.frame(  variable = as.character(step)
-                                                              ,variable_factor = as.character(paste(step, "_", j, sep = "")) #variable <- 
+                                                              ,variable_factor = paste(step, "_", j, sep = "") #variable <- 
+                                                              ,column_final = paste(step, "_", j, sep = "")
                                                               ,interval_type = as.character("factor") #interval_type <- 
                                                               ,interval_number = as.integer(inter) #interval_number <- 
                                                               ,interval_str = as.character("NA = NA")  #interval_str <-       
@@ -165,6 +168,7 @@ binFactor <- function(  initial_data_updated
               initial_intervals_summary <- rbind(initial_intervals_summary, 
                                                  data.frame( variable = as.character(step)
                                                             ,variable_factor = as.character(paste(step, "_", j, sep = "")) #variable <- 
+                                                            ,column_final = paste(step, "_", j, sep = "")
                                                             ,interval_type = as.character("factor") #interval_type <- 
                                                             ,interval_number = as.integer(inter) #interval_number <- 
                                                             ,interval_str = as.character(paste(inter-1,"=", inter - 1))  #interval_str <-       
@@ -204,6 +208,7 @@ binFactor <- function(  initial_data_updated
           initial_intervals_summary <- rbind(initial_intervals_summary, 
                                               data.frame(   variable = as.character(step)
                                                            ,variable_factor = as.character(unique_intervals[inter]) #variable <- 
+                                                           ,column_final = as.character(step)
                                                            ,interval_type = as.character("factor") #interval_type <- 
                                                            ,interval_number = as.integer(inter) #interval_number <- 
                                                            ,interval_str = as.character("NA = NA")  #interval_str <-       
@@ -222,6 +227,7 @@ binFactor <- function(  initial_data_updated
           initial_intervals_summary <- rbind(initial_intervals_summary, 
                                               data.frame(  variable = as.character(step)
                                                           ,variable_factor = as.character(unique_intervals[inter]) #variable <- 
+                                                          ,column_final = as.character(step)
                                                           ,interval_type = as.character("factor") #interval_type <- 
                                                           ,interval_number = as.integer(inter) #interval_number <- 
                                                           ,interval_str = as.character(paste(inter,"=", inter))  #interval_str <-       
@@ -262,8 +268,9 @@ binFactor <- function(  initial_data_updated
           #check for NA items
           if (is.na(j)){
             initial_intervals_summary <- rbind(initial_intervals_summary, 
-                                                data.frame(   variable = as.character(step)
+                                                data.frame(    variable = as.character(step)
                                                               ,variable_factor = as.character(j) #variable <- 
+                                                              ,column_final = as.character(step)
                                                               ,interval_type = as.character("factor") #interval_type <- 
                                                               ,interval_number = as.integer(inter) #interval_number <- 
                                                               ,interval_str = as.character(paste(mean_level,"=",mean_level))  #interval_str <-       
@@ -282,6 +289,7 @@ binFactor <- function(  initial_data_updated
             initial_intervals_summary <- rbind(initial_intervals_summary, 
                                                 data.frame(  variable = as.character(step)
                                                              ,variable_factor = as.character(j) #variable <- 
+                                                             ,column_final = as.character(step)
                                                              ,interval_type = as.character("factor") #interval_type <- 
                                                              ,interval_number = as.integer(inter) #interval_number <- 
                                                              ,interval_str = as.character(paste(mean_level,"=",mean_level))  #interval_str <-       
@@ -315,7 +323,8 @@ binFactor <- function(  initial_data_updated
 binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
 
   initial_intervals_summary <- data.frame(   variable = as.character()
-                                            ,variable_factor = as.character()  
+                                            ,variable_factor = as.character()
+                                            ,column_final = as.character()
                                             ,interval_type = as.character()
                                             ,interval_number = as.integer()
                                             ,interval_str = as.character()
@@ -422,8 +431,9 @@ binColumn <- function(  vector_to_be_binned
                      ){
   
   #temporary nterval summary
-  initial_intervals_summary <- data.frame(   variable = as.character()
-                                             ,variable_factor = as.character()  
+  initial_intervals_summary <- data.frame(    variable = as.character()
+                                             ,variable_factor = as.character()
+                                             ,column_final = as.character()
                                              ,interval_type = as.character()
                                              ,interval_number = as.integer()
                                              ,interval_str = as.character()
@@ -450,6 +460,7 @@ binColumn <- function(  vector_to_be_binned
       initial_intervals_summary <- rbind(initial_intervals_summary, 
                                          data.frame(   variable = column_names
                                                       ,variable_factor = NA #variable <- 
+                                                      ,column_final = column_names
                                                       ,interval_type = column_classes #interval_type <- 
                                                       ,interval_number = i #interval_number <- 
                                                       ,interval_str = paste("<", actual_vector_intervals[2, i])  #interval_str <-       
@@ -473,6 +484,7 @@ binColumn <- function(  vector_to_be_binned
       initial_intervals_summary <- rbind(initial_intervals_summary, 
                                          data.frame(    variable = column_names
                                                        ,variable_factor = NA #variable <- 
+                                                       ,column_final = column_names
                                                        ,interval_type = column_classes #interval_type <- 
                                                        ,interval_number = i #interval_number <- 
                                                        ,interval_str = paste(">=", actual_vector_intervals[1, i])  #interval_str <-       
@@ -497,6 +509,7 @@ binColumn <- function(  vector_to_be_binned
       initial_intervals_summary <- rbind(initial_intervals_summary, 
                                          data.frame(   variable = column_names
                                                        ,variable_factor = NA #variable <- 
+                                                       ,column_final = column_names
                                                        ,interval_type = column_classes #interval_type <- 
                                                        ,interval_number = i #interval_number <- 
                                                        ,interval_str = paste(">=", actual_vector_intervals[1, i], "<", actual_vector_intervals[2, i])  #interval_str <-       
@@ -519,7 +532,8 @@ binColumn <- function(  vector_to_be_binned
       good <- sum(gb[is.na(vector_to_be_binned)] == 1)
       initial_intervals_summary <- rbind(initial_intervals_summary, 
                                          data.frame(     variable = column_names
-                                                         ,variable_factor = NA #variable <- 
+                                                         ,variable_factor = NA #variable <-
+                                                         ,column_final = column_names
                                                          ,interval_type = column_classes #interval_type <- 
                                                          ,interval_number = i #interval_number <- 
                                                          ,interval_str = "NA = NA"  #interval_str <-       
@@ -622,7 +636,7 @@ binPortfolioWoe <- function(binned_portfolio, interval_summary_WOE_IV ){
 }
 
 
-calcCorrelation <- function(binned_portfolio_WOE, cut_off_cor = 0.5){
+calcCorrelation <- function(binned_portfolio_WOE, cut_off_cor = 0.75){
   browser()
   #calculate the initial correlation matrix (with NA)
   df2 <- cor(binned_portfolio_WOE)
