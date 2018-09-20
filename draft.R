@@ -52,6 +52,10 @@ binned_portfolio <- cbind(binned_factor_table[[1]], binned_vectors[[1]])
 interval_summary_WOE_IV <- calcWOEIV(interval_summary)
 #bin portfolio with WOE values
 binned_portfolio_WOE <- binPortfolioWoe(binned_portfolio, interval_summary_WOE_IV)
+#calculate correlation
+corSummary <- calcCorrelation(binned_portfolio_WOE, cut_off_cor = 0.75)
+#calculate model
+modelOutput <- calcModel(binned_portfolio_WOE, selected_vars, gb)
 
 
 ############################################################################################################
@@ -597,7 +601,7 @@ calcWOEIV <- function(interval_summary, rounding = 4){
 binPortfolioWoe <- function(binned_portfolio, interval_summary_WOE_IV ){
   
   binned_portfolio_WOE <- copy(binned_portfolio)
-  column_names <- names( binned_portfolio_WOE)
+  column_names <- names(binned_portfolio_WOE)
   
   interval_summary <- as.data.table(interval_summary_WOE_IV)
   #binWOE factor columns of option1 (1 or 0) - paste proper WOE values
@@ -637,7 +641,7 @@ binPortfolioWoe <- function(binned_portfolio, interval_summary_WOE_IV ){
 
 
 calcCorrelation <- function(binned_portfolio_WOE, cut_off_cor = 0.75){
-  browser()
+
   #calculate the initial correlation matrix (with NA)
   df2 <- cor(binned_portfolio_WOE)
   print("Correlation calculated.")
@@ -664,7 +668,7 @@ calcCorrelation <- function(binned_portfolio_WOE, cut_off_cor = 0.75){
   #to define factors(columns) to be removed due to cut off defined
   hc <- findCorrelation(as.matrix(df3), cutoff=cut_off_cor) # putt any value as a "cutoff"
   hc <- sort(hc)
-  
+  #return the output (variables with accepted correlation)
   if (length(hc)==0){
   
     return(df3)
@@ -676,17 +680,45 @@ calcCorrelation <- function(binned_portfolio_WOE, cut_off_cor = 0.75){
   }
   
 }
+ 
+calcModel <- function(data, x_vars, y_vars, ...){
+  browser()
+  #pick up the existing columns in data
+  data <- as.data.frame(data)
+  column_names <- names(data)
+  ifelse(is.null(x_vars), column_names <- names(data), column_names <- column_names[column_names %in% x_vars])
+  #compile formula string to inset into model
+  y_factor <- paste(y_vars,"~", collapse="")
+  #compileformula string
+  formula_string <- paste(column_names, collapse = "+")
+  formula_string <- paste(y_factor, formula_string)
+  print(formula_string)
+  #convert formula string into formula object
+  z <- formula(formula_string)
+  #model calculation
+  fullmodel <- glm(z, family = binomial(logit), data = data)
+  #save the model output to a file
+  #writeLines(capture.output(summary(fullmodel)),con=full_model_to_file)
+  #print (proc.time()-ptm)
+  
+  #to compile model.csv
+  coefficients <- coef(summary(fullmodel))
+  predictors <- rownames(coefficients)
+  predictors[1] <- "C"
+  #to derive coefficients from model summary
+  coef_values <- as.data.frame(coefficients[1:nrow(coefficients),1])
+  coef_values <- print(coef_values, row.names = FALSE)
+  # to write coefficients to file
+  model_vars <- cbind(predictors,coef_values)
+  colnames(model_vars) <- c("predictor","value")
+  #write.csv2(to_file,model_to_file,row.names=FALSE)
+  #env$model_coefs_global<-to_file
+  #print("coefs calculated")
+  return(model_vars, summary(fullmodel))
+  
+}
 
 
-xxx <- calcWOEIV(interval_summary)
-
-xxx <- calcCorrelation(binned_portfolio_WOE, cut_off_cor = -0.3) 
-
-#rm(list=ls())
+#rm(list = ls())
 #gc()
 
-install.packages("SciViews")
-library(SciViews)
-cor <- correlation(binned_portfolio_WOE, y = gb, use = "everything", cutoff = 0.2)
-class(cor)
-abs(cor) > abs(0.2)
