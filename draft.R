@@ -54,8 +54,15 @@ interval_summary_WOE_IV <- calcWOEIV(interval_summary)
 binned_portfolio_WOE <- binPortfolioWoe(binned_portfolio, interval_summary_WOE_IV)
 #calculate correlation
 corSummary <- calcCorrelation(binned_portfolio_WOE, cut_off_cor = 0.75)
+#add good/bad vector (1 and/or 0)
+binned_portfolio_WOE <- cbind(binned_portfolio_WOE, gb)
+names(binned_portfolio_WOE)[dim(binned_portfolio_WOE)[2]] <- good_bad 
 #calculate model
-modelOutput <- calcModel(binned_portfolio_WOE, selected_vars, gb)
+modelOutput <- calcModel(binned_portfolio_WOE, selected_vars, good_bad, gb)
+#select variables by p-value
+p_value <- 0.99
+selectedModelVars <- rownames(modelOutput[[2]])[modelOutput[[2]][ , 4] < p_value]  
+  
 
 
 ############################################################################################################
@@ -714,7 +721,7 @@ calcModel <- function(data, x_vars, y_vars, ...){
   #write.csv2(to_file,model_to_file,row.names=FALSE)
   #env$model_coefs_global<-to_file
   #print("coefs calculated")
-  return(model_vars, summary(fullmodel))
+  return(list(model_vars, coef(summary(fullmodel)), summary(fullmodel)))
   
 }
 
