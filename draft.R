@@ -41,7 +41,6 @@ initial_data_updated <- as.data.table(chileancredit[,c(names(chileancredit) %in%
 names(initial_data_updated) <- selected_vars
 #processed factor table (ready for binning as a vector)
 binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_type = 1, gb = gb)
-
 binned_vectors <- binVector(initial_data_updated, interval_qty, selected_vars, gb)
 
 #overall interval summary
@@ -689,7 +688,7 @@ calcCorrelation <- function(binned_portfolio_WOE, cut_off_cor = 0.75){
 }
  
 calcModel <- function(data, x_vars, y_vars, ...){
-  browser()
+  
   #pick up the existing columns in data
   data <- as.data.frame(data)
   column_names <- names(data)
@@ -724,6 +723,146 @@ calcModel <- function(data, x_vars, y_vars, ...){
   return(list(model_vars, coef(summary(fullmodel)), summary(fullmodel)))
   
 }
+
+
+calcScore <- function(binned_portfolio_WOE, good_bad){
+  
+  
+  rowQty<-nrow(attrs)
+  colQty<-ncol(attrs)
+  #read model coefficients
+  model<-read.csv2(model_from_file,sep=";")
+  #read the couln with Good_Bad criterium
+  #GB1<-read.csv2("xxx.csv",sep=";")
+  
+  GB<-attrs[,(colQty-1)]
+  
+  #vector with column names from binned sample
+  field_names<-unique(colnames(attrs))
+  
+  #vector to transfer final data
+  new_vector<-1:rowQty
+  #variable to calculate tech_score
+  multiplication<-0
+  #calculated tech_score to transfer to file
+  tech_score_final<-0
+  
+  #calculation and data transferare performed by vector approach - separate vectors are created and merged in the final step
+  #binned vector of selected predictors
+  attribute_vector<-matrix(nrow=rowQty,ncol=length(field_names)-2)
+  attribute_vector<-as.data.frame(attribute_vector)
+  #vector of model coeffitients
+  coefficient_vector<-matrix(nrow=rowQty,ncol=length(field_names)-2)
+  coefficient_vector<-as.data.frame(coefficient_vector)
+  #vector of woe calculated
+  woe_vector<-matrix(nrow=rowQty,ncol=(length(field_names)-2))
+  woe_vector<-as.data.frame(woe_vector)
+  #vector of final score result
+  result_vector<-matrix(nrow=rowQty,ncol=1)
+  result_vector<-as.data.frame(result_vector)
+  
+  dim(woe_vector)
+  
+  #to loop all predictors selected
+  for(i in 1:(length(field_names)-2)){
+    #to select the vector of the specific binned column
+    field_selected<-field_names==field_names[i]
+    index<-which(field_selected %in% c(TRUE))
+    column_selected<-attrs[,index]
+    
+    #check for NA cells in the column
+    index<-which(is.na(column_selected) %in% c(TRUE))
+    if (is.na(index[1])){
+      column_selected[index]<-0
+    }
+    #to make the attribute vector
+    attribute_vector[,i]<-column_selected
+    
+    
+    #to select coefficients from model
+    coefficient_selected<-model[,1]==field_names[i]
+    index<-which(coefficient_selected %in% c(TRUE))
+    if (is.na(index[1])){
+      coefficient_selected[index]<-0
+    }else{
+      coefficient_selected<-model[index,2]
+    }
+    
+    coefficients<-1:length(column_selected)
+    coefficients[1:length(column_selected)]<-coefficient_selected
+    
+    #to make coefficient vector
+    coefficient_vector[,i]<-coefficients
+    
+    #to select WOEs for the specified predictor
+    WOE_predictor<-subset(WOE,predictor==field_names[i],c(predictor,attributes,WOE))
+    #print(WOE_predictor)
+    
+    #to define the transfer vector
+    new_vector<-1:rowQty
+    #check for NA cells
+    if (is.na(WOE_predictor[1,1])){
+      new_vector[1:rowQty]<-0
+    }else{
+      #to fill up the tranfer vector
+      for(n in 1:length(WOE_predictor[,1])){
+        check<-column_selected==as.vector(WOE_predictor[n,2])
+        index<-which(check %in% c(TRUE))
+        new_vector[index]<-as.vector(WOE_predictor[n,3])
+        
+      }
+    }
+    
+    woe_vector[,i]<-new_vector
+    
+    if (field_names[i]!="C"){
+      multiplication<-coefficients*new_vector
+    }else{
+      multiplication<-coefficients
+    }
+    #to make the score result vector
+    tech_score_final<-tech_score_final+multiplication
+  }
+  
+  #to add Intercept vector
+  c<-unlist(subset(model,predictor=="C"))[2]
+  c_final<-1:rowQty
+  c_final[1:rowQty]<-c
+  
+  tech_score_final<-round(tech_score_final+c_final,10)
+  result_vector<-tech_score_final
+  
+  #to make the final sample to record into file
+  to_file<-cbind(attribute_vector,coefficient_vector,woe_vector, c_final,tech_score_final,GB)
+  #names of predictors binned
+  column_names<-field_names[1:(length(field_names)-2)]
+  #names of predictors model coefficients
+  x<-paste(field_names[1:(length(field_names)-2)],"_coef",sep="")
+  #names of predictors woes
+  y<-paste(field_names[1:(length(field_names)-2)],"_woe",sep="")
+  #to make the finale vector of field names
+  column_names<-c(column_names,x,y,"C_intercept","tech_score_final","GB")
+  #to add names to
+  colnames(to_file)<-c(column_names)
+  #to record the final tech score results
+  #write.csv2(to_file,tech_score_to_file,row.names=FALSE)
+  if (memory_boost_in==FALSE){
+    #fwrite_score(to_file,tech_score_to_file)
+    #fast_write(to_file,tech_score_to_file,sep=";",header=TRUE)
+    write.csv2(to_file,tech_score_to_file,row.names=FALSE)
+    print("tech. score saved to file.")
+    print (proc.time()-ptm)
+  }else{
+    env$tech_score_global<-to_file
+    print("tech. score saved to RAM.")
+    print (proc.time()-ptm)
+  }
+  
+  
+  
+  
+}
+
 
 
 #rm(list = ls())
