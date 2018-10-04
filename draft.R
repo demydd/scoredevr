@@ -61,8 +61,10 @@ modelOutput <- calcModel(binned_portfolio_WOE, selected_vars, good_bad, gb)
 #select variables by p-value
 p_value <- 0.99
 selectedModelVars <- rownames(modelOutput[[2]])[modelOutput[[2]][ , 4] < p_value]  
-  
 
+calcScore(binned_portfolio_WOE, interval_summary_WOE_IV, modelOutput, selected_vars, good_bad)  
+
+data, summaryWOE, modelOutput, x_vars = NA, good_bad
 
 ############################################################################################################
 #select the necessary variable and reduce the data table
@@ -726,14 +728,37 @@ calcModel <- function(data, x_vars, y_vars, ...){
 
 
 calcScore <- function(data, summaryWOE, modelOutput, x_vars, good_bad){
-  #exclude good/bad vector from main data table (if any)
-  data <- data[ , -good_bad]
+  
+  browser()
   #pick up the existing columns in data  
-  ifelse(is.null(x_vars), column_names <- names(data), column_names <- column_names[column_names %in% x_vars])
+  ifelse(is.null(x_vars), column_names <- names(data), column_names <- names(data)[names(data) %in% x_vars])
+  model <- as.data.table(modelOutput[[1]])
+
+  for(j in column_names){
+    
+    woe <- summaryWOE[column_final == j][ , .(column_final, interval_number, woe)]
+ 
+
+    
+    for(i in woe$interval_number){
+      
+      model_selected <-  model[model$predictor == j]$value[i]
+      select <- data[, ..j] == i 
+      
+      if(sum(select) != 0){
+        
+        data[select, ..j] <- woe$woe[i]
+        print(woe$woe[i])        
+                
+      }
+      
+
+    
+    }
+    
+  }
   
-  
-  
-  
+  return (data)
   
 }
 
