@@ -61,7 +61,8 @@ modelOutput <- calcModel(binned_portfolio_WOE, selected_vars, good_bad, gb)
 #select variables by p-value
 p_value <- 0.99
 selectedModelVars <- rownames(modelOutput[[2]])[modelOutput[[2]][ , 4] < p_value]  
-  
+
+calcScore(binned_portfolio_WOE, interval_summary_WOE_IV, modelOutput, selectedVars, good_bad)  
 
 
 ############################################################################################################
@@ -726,14 +727,27 @@ calcModel <- function(data, x_vars, y_vars, ...){
 
 
 calcScore <- function(data, summaryWOE, modelOutput, x_vars, good_bad){
+  
+  browser()
   #exclude good/bad vector from main data table (if any)
-  data <- data[ , -good_bad]
+  data[ , ..good_bad] <- NULL
   #pick up the existing columns in data  
   ifelse(is.null(x_vars), column_names <- names(data), column_names <- column_names[column_names %in% x_vars])
   
+  for(j in column_names){
+    
+    woe <- summaryWOE[column_final == j][ , .(column_final, interval_number, woe)]
+    
+    for(i in woe$interval_number){
+      
+      data[ , ..j][data[, ..j] == i] <- woe$interval_number[i]
+      print(woe$interval_number[i])
+    
+    }
+    
+  }
   
-  
-  
+  return (data)
   
 }
 
