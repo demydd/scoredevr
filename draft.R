@@ -733,12 +733,10 @@ calcScore <- function(data, summaryWOE, modelOutput, x_vars, good_bad){
   #pick up the existing columns in data  
   ifelse(is.null(x_vars), column_names <- names(data), column_names <- names(data)[names(data) %in% x_vars])
   model <- as.data.table(modelOutput[[1]])
-
+  
   for(j in column_names){
     
     woe <- summaryWOE[column_final == j][ , .(column_final, interval_number, woe)]
- 
-
     
     for(i in woe$interval_number){
       
@@ -749,20 +747,17 @@ calcScore <- function(data, summaryWOE, modelOutput, x_vars, good_bad){
         
         data[select, ..j] <- woe$woe[i]
         print(woe$woe[i])        
-                
+        
       }
       
-
-    
+      
     }
     
   }
   
   return (data)
-  
+
 }
-
-
 
 #rm(list = ls())
 #gc()
