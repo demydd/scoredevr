@@ -62,7 +62,7 @@ modelOutput <- calcModel(binned_portfolio_WOE, selected_vars, good_bad, gb)
 p_value <- 0.99
 selectedModelVars <- rownames(modelOutput[[2]])[modelOutput[[2]][ , 4] < p_value]  
 
-calcScore(binned_portfolio_WOE, interval_summary_WOE_IV, modelOutput, selected_vars, good_bad)  
+scored_portfolio <- calcScore(binned_portfolio_WOE, interval_summary_WOE_IV, modelOutput, selected_vars, good_bad)  
 
 data, summaryWOE, modelOutput, x_vars = NA, good_bad
 
@@ -705,9 +705,6 @@ calcModel <- function(data, x_vars, y_vars, ...){
   z <- formula(formula_string)
   #model calculation
   fullmodel <- glm(z, family = binomial(logit), data = data)
-  #save the model output to a file
-  #writeLines(capture.output(summary(fullmodel)),con=full_model_to_file)
-  #print (proc.time()-ptm)
   
   #to compile model.csv
   coefficients <- coef(summary(fullmodel))
@@ -719,9 +716,7 @@ calcModel <- function(data, x_vars, y_vars, ...){
   # to write coefficients to file
   model_vars <- cbind(predictors,coef_values)
   colnames(model_vars) <- c("predictor","value")
-  #write.csv2(to_file,model_to_file,row.names=FALSE)
-  #env$model_coefs_global<-to_file
-  #print("coefs calculated")
+
   return(list(model_vars, coef(summary(fullmodel)), summary(fullmodel)))
   
 }
@@ -732,32 +727,48 @@ calcScore <- function(data, summaryWOE, modelOutput, x_vars, good_bad){
   browser()
   #pick up the existing columns in data  
   ifelse(is.null(x_vars), column_names <- names(data), column_names <- names(data)[names(data) %in% x_vars])
+  #pick up the data table with coefficients per variable
   model <- as.data.table(modelOutput[[1]])
-  
+  #score calculation for all variables selected
   for(j in column_names){
-    
+    #pick up WOE extract per variable 
     woe <- summaryWOE[column_final == j][ , .(column_final, interval_number, woe)]
-    
+    #FOR loop to rush through all woe intervals per variable selected 
     for(i in woe$interval_number){
-      
-      model_selected <-  model[model$predictor == j]$value[i]
+      #pick up model coefficient per variable
+      model_selected <- model[model$predictor == j]$value[i]
+      #selection vector for IF statement
       select <- data[, ..j] == i 
-      
+      #if any items are in selection -> perform calculation (WOE & var coefficient) per variable
       if(sum(select) != 0){
         
-        data[select, ..j] <- woe$woe[i]
-        print(woe$woe[i])        
-        
+        data[select, ..j] <- woe$woe[i] * model_selected
+        #print(woe$woe[i] * model_selected)        
       }
-      
       
     }
     
   }
+  #pick up intercept 
+  C <- model[model$predictor == 'C']$value
+  #calculate total score per row
+  score <- apply(data, 1, sum)
+  #add intercept
+  score <- score + C
+  #add score to the final output
+  data <- cbind(data, score)
   
-  return (data)
+  return (data) 
 
 }
+
+
+calcScoreDist <- function(data, gb){
+  
+    
+  
+}
+
 
 #rm(list = ls())
 #gc()
