@@ -765,7 +765,53 @@ calcScore <- function(data, summaryWOE, modelOutput, x_vars, good_bad){
 
 calcScoreDist <- function(data, gb){
   
+  #vector of column classes
+  column_classes <- sapply(initial_data_updated, class)
+  #reduce the input data by factor columns
+  index <- which(column_classes %in% c("integer", "numeric", "complex", "double"))
+  column_classes <- column_classes[index]
+  
+  #vector of column names[index]
+  column_names <- names(initial_data_updated)[index]
+  if (is.null(selected_vars)) selected_vars <- column_names
+  column_names <- column_names[column_names %in% selected_vars]
+  initial_data_updated <- initial_data_updated[ , ..column_names]
+  attribute_qty <- length(column_names)
+  
+  #the final output table
+  binned_table <- data.table(matrix(nrow = column_length, ncol = length(column_names)))
+  
+  if (interval_qty > column_length) {
     
+    stop ('The function execution is interrupted: The number of intervals > column length!')
+    
+  } else {
+    #indecies to find values for each interval
+    vector_index <- round(quantile(c(1:column_length), c(seq(0, 1, 1/interval_qty))), 0)
+    
+  }
+  
+  #order the vector in ascendency
+  sorted_vector <- sort(as.vector(unlist(initial_data_updated[, ..j])), na.last = TRUE)
+
+  #interval value distribution before preprocessing
+  initial_vector <- sorted_vector[vector_index]
+  #initial vector with intervals without NA
+  initial_vector_updated <- initial_vector[!is.na(initial_vector)]
+  #remove NAs fron the vector
+  sorted_vector_updated <- sorted_vector[!is.na(sorted_vector)]
+  
+  #matrix of start and end of intervals (1- star, 2 - end)
+  actual_vector_intervals <- rbind(initial_vector_updated[-length(initial_vector_updated)], initial_vector_updated[-1])
+  
+  if (sum(is.na(unique(sorted_vector))) > 0) actual_vector_intervals <- cbind(actual_vector_intervals, c(NA, NA))
+  
+  #rename columns: Vx -> 1, 2, 3 ...
+  colnames(actual_vector_intervals) <- as.character(c(1:dim(actual_vector_intervals)[2]))
+  rownames(actual_vector_intervals) <- c("start", "end")
+  #actual interval q-ty
+  actual_vector_intervals_qty <- dim(actual_vector_intervals)[2]
+  
   
 }
 
