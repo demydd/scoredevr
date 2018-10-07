@@ -61,10 +61,15 @@ modelOutput <- calcModel(binned_portfolio_WOE, selected_vars, good_bad, gb)
 #select variables by p-value
 p_value <- 0.99
 selectedModelVars <- rownames(modelOutput[[2]])[modelOutput[[2]][ , 4] < p_value]  
-
+#calculate score
 scored_portfolio <- calcScore(binned_portfolio_WOE, interval_summary_WOE_IV, modelOutput, selected_vars, good_bad)  
+#make score distribution over intervals
+scoreDist <- binVector(scored_portfolio, interval_qty, "score", gb)
+#add WOE and IV values to interval summary
+scoreDistSummary <- calcWOEIV(scoreDist[[2]])
+#Gini calculation
+gini_square <- calcGini(scoreDistSummary)
 
-data, summaryWOE, modelOutput, x_vars = NA, good_bad
 
 ############################################################################################################
 #select the necessary variable and reduce the data table
@@ -569,6 +574,7 @@ binColumn <- function(  vector_to_be_binned
 
 #calculate WOE and IV
 calcWOEIV <- function(interval_summary, rounding = 4){
+  #browser()
   #convert to data.table
   interval_summary <- as.data.table(interval_summary)
   #calculate basic values - part 1
@@ -582,7 +588,7 @@ calcWOEIV <- function(interval_summary, rounding = 4){
                   ]
   #calculate basic values (cumulative) - part 2
   interval_summary[ , `:=`(   good_rate_cum = ifelse(total_cum == 0, 0, round(good_cum/total_cum, rounding))
-                             ,bad_rate_cum = ifelse(total_cum, 0, round(bad_cum/total_cum, rounding))
+                             ,bad_rate_cum = ifelse(total_cum == 0, 0, round(bad_cum/total_cum, rounding))
                              ,good_odds = ifelse(bad == 0, 0, round(good/bad, rounding))
                              
                            )
@@ -724,7 +730,7 @@ calcModel <- function(data, x_vars, y_vars, ...){
 
 calcScore <- function(data, summaryWOE, modelOutput, x_vars, good_bad){
   
-  browser()
+  #browser()
   #pick up the existing columns in data  
   ifelse(is.null(x_vars), column_names <- names(data), column_names <- names(data)[names(data) %in% x_vars])
   #pick up the data table with coefficients per variable
@@ -763,55 +769,37 @@ calcScore <- function(data, summaryWOE, modelOutput, x_vars, good_bad){
 }
 
 
-calcScoreDist <- function(data, gb){
+calcGini <- function(scoreDistSummary, rounding = 10){
+  #browser()
+  #make initial values for gini calculation
+  scoreDistSummary[ ,`:=`( KS_diff = bad_rate_cum - good_rate_cum
+                          ,BS = ifelse(max(bad_rate_cum) == 0, 0, round(bad_rate_cum / max(bad_rate_cum), digits = rounding))
+                          ,GS = ifelse(max(good_rate_cum) == 0, 0, round(good_rate_cum / max(good_rate_cum), digits = rounding))
+                         )
+                  ]
   
-  #vector of column classes
-  column_classes <- sapply(initial_data_updated, class)
-  #reduce the input data by factor columns
-  index <- which(column_classes %in% c("integer", "numeric", "complex", "double"))
-  column_classes <- column_classes[index]
+  #to make vector of Bads diff (Bi-B(i-1))
+  scoreDistSummary[, `:=`( BS_start = BS[1:length(BS) - 1]
+                          ,BS_end = BS[2:length(BS)]
+                         )
+                  ]
   
-  #vector of column names[index]
-  column_names <- names(initial_data_updated)[index]
-  if (is.null(selected_vars)) selected_vars <- column_names
-  column_names <- column_names[column_names %in% selected_vars]
-  initial_data_updated <- initial_data_updated[ , ..column_names]
-  attribute_qty <- length(column_names)
+  #to make vector of Goods diff (Gi-G(i-1))
+  scoreDistSummary[, `:=`(  GS_start = GS[1:length(GS) - 1]
+                           ,GS_end = GS[2:length(GS)]
+                         )
+                  ]  
   
-  #the final output table
-  binned_table <- data.table(matrix(nrow = column_length, ncol = length(column_names)))
+  #BS and GS total
+  scoreDistSummary[, `:=`(   BS_final = BS_end - BS_start 
+                            ,GS_final = GS_end + GS_start
+                         )
+                  ]
   
-  if (interval_qty > column_length) {
-    
-    stop ('The function execution is interrupted: The number of intervals > column length!')
-    
-  } else {
-    #indecies to find values for each interval
-    vector_index <- round(quantile(c(1:column_length), c(seq(0, 1, 1/interval_qty))), 0)
-    
-  }
-  
-  #order the vector in ascendency
-  sorted_vector <- sort(as.vector(unlist(initial_data_updated[, ..j])), na.last = TRUE)
+  #Square GINI calculation
+  scoreDistSummary[, `:=`(gini_square = BS_final * GS_final) ]  
 
-  #interval value distribution before preprocessing
-  initial_vector <- sorted_vector[vector_index]
-  #initial vector with intervals without NA
-  initial_vector_updated <- initial_vector[!is.na(initial_vector)]
-  #remove NAs fron the vector
-  sorted_vector_updated <- sorted_vector[!is.na(sorted_vector)]
-  
-  #matrix of start and end of intervals (1- star, 2 - end)
-  actual_vector_intervals <- rbind(initial_vector_updated[-length(initial_vector_updated)], initial_vector_updated[-1])
-  
-  if (sum(is.na(unique(sorted_vector))) > 0) actual_vector_intervals <- cbind(actual_vector_intervals, c(NA, NA))
-  
-  #rename columns: Vx -> 1, 2, 3 ...
-  colnames(actual_vector_intervals) <- as.character(c(1:dim(actual_vector_intervals)[2]))
-  rownames(actual_vector_intervals) <- c("start", "end")
-  #actual interval q-ty
-  actual_vector_intervals_qty <- dim(actual_vector_intervals)[2]
-  
+  return(scoreDistSummary)
   
 }
 
