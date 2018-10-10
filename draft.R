@@ -68,8 +68,9 @@ scoreDist <- binVector(scored_portfolio, interval_qty, "score", gb)
 #add WOE and IV values to interval summary
 scoreDistSummary <- calcWOEIV(scoreDist[[2]])
 #Gini calculation
+debugonce(calcGini)
 gini_square <- calcGini(scoreDistSummary)
-
+gini <- 1 - sum(gini_square$gini_square)
 
 ############################################################################################################
 #select the necessary variable and reduce the data table
@@ -773,26 +774,30 @@ calcGini <- function(scoreDistSummary, rounding = 10){
   #browser()
   #make initial values for gini calculation
   scoreDistSummary[ ,`:=`( KS_diff = bad_rate_cum - good_rate_cum
-                          ,BS = ifelse(max(bad_rate_cum) == 0, 0, round(bad_rate_cum / max(bad_rate_cum), digits = rounding))
-                          ,GS = ifelse(max(good_rate_cum) == 0, 0, round(good_rate_cum / max(good_rate_cum), digits = rounding))
+                          ,BS = if(max(bad_rate_cum) == 0){
+                                   rep(0, length(bad_rate_cum))
+                                } else{
+                                   round(bad_rate_cum / max(bad_rate_cum), digits = rounding)
+                                }
+                          ,GS =   if(max(good_rate_cum) == 0){
+                                    rep(0, length(good_rate_cum))
+                                  } else{
+                                    round(good_rate_cum / max(good_rate_cum), digits = rounding)
+                                  }
                          )
                   ]
   
   #to make vector of Bads diff (Bi-B(i-1))
-  scoreDistSummary[, `:=`( BS_start = BS[1:length(BS) - 1]
-                          ,BS_end = BS[2:length(BS)]
-                         )
-                  ]
+  BS_start = scoreDistSummary$BS[1:length(scoreDistSummary$BS) - 1]
+  BS_end = scoreDistSummary$BS[2:length(scoreDistSummary$BS)]
   
   #to make vector of Goods diff (Gi-G(i-1))
-  scoreDistSummary[, `:=`(  GS_start = GS[1:length(GS) - 1]
-                           ,GS_end = GS[2:length(GS)]
-                         )
-                  ]  
+  GS_start = scoreDistSummary$GS[1:length(scoreDistSummary$GS) - 1]
+  GS_end = scoreDistSummary$GS[2:length(scoreDistSummary$GS)]
   
   #BS and GS total
-  scoreDistSummary[, `:=`(   BS_final = BS_end - BS_start 
-                            ,GS_final = GS_end + GS_start
+  scoreDistSummary[, `:=`(   BS_final = c(bad_rate[1], BS_end - BS_start) 
+                            ,GS_final = c(good_rate[1], GS_end + GS_start)
                          )
                   ]
   
