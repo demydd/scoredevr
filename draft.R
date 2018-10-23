@@ -9,6 +9,14 @@ data(chileancredit)
 #new_dir <- "D:\\Demyd\\Personal\\R"
 #setwd(new_dir)
 
+file_path <- 'D:\\Demyd\\Personal\\R\\kaggle\\'
+file_name <- 'application_train.csv'
+
+data <- fread(paste(file_path, file_name, sep=""))
+
+readColNamesClasses(data)
+
+
 #the table to collect aggregated info about interval distribution of each variable
 initial_intervals_summary <- data.frame(  variable = as.character()
                                          ,variable_factor = as.character()
@@ -807,6 +815,33 @@ calcGini <- function(scoreDistSummary, rounding = 10){
   return(scoreDistSummary)
   
 }
+
+
+readColNamesClasses <- function(data){
+  
+  column_classes <- sapply(data, class)
+  column_names <- names(data)
+  
+  return(as.data.table(cbind(column_names, column_classes)))
+    
+}
+
+vars_to_convert <- 'NAME_TYPE_SUITE'
+
+convertToFactor <- function(data, vars_to_convert){
+  
+  
+  vars <- readColNamesClasses(data)
+  if (sum(vars[ , .(column_names)] %in% vars_to_convert) != 0){
+    selection <- vars$column_names[vars$column_names %in% vars_to_convert]
+    
+    
+    data[ , as.factor(..selection)] 
+  }
+  
+}
+  
+class(vars)
 
 
 #rm(list = ls())
