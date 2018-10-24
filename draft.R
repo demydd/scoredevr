@@ -13,6 +13,7 @@ file_path <- 'D:\\Demyd\\Personal\\R\\kaggle\\'
 file_name <- 'application_train.csv'
 
 data <- fread(paste(file_path, file_name, sep=""))
+vars_to_convert <- c('NAME_TYPE_SUITE', 'NAME_CONTRACT_TYPE')
 
 readColNamesClasses(data)
 
@@ -826,23 +827,23 @@ readColNamesClasses <- function(data){
     
 }
 
-vars_to_convert <- 'NAME_TYPE_SUITE'
 
 convertToFactor <- function(data, vars_to_convert){
   
-  
+  #read column names and their classes  
   vars <- readColNamesClasses(data)
-  if (sum(vars[ , .(column_names)] %in% vars_to_convert) != 0){
+  #check whether we need to perfrom further stepas
+  if (sum(vars$column_names %in% vars_to_convert) != 0){
+    #make the final seceltion to convert to factor 
     selection <- vars$column_names[vars$column_names %in% vars_to_convert]
+    #conversion (it is taken from https://stackoverflow.com/questions/16943939/elegantly-assigning-multiple-columns-in-data-table-with-lapply/33000778#33000778)
+    data[, (selection) := lapply(selection, function(x) {as.factor(data[[x]])})]
     
-    
-    data[ , as.factor(..selection)] 
   }
   
+  return (data)
 }
-  
-class(vars)
-
+ 
 
 #rm(list = ls())
 #gc()
