@@ -10,10 +10,16 @@ data(chileancredit)
 #setwd(new_dir)
 
 file_path <- 'D:\\Demyd\\Personal\\R\\kaggle\\'
+file_path2 <- 'C:\\Users\\Demyd_Dzyuban\\Documents\\Demyd\\Personal\\Kaggle\\'
 file_name <- 'application_train.csv'
 
-data <- fread(paste(file_path, file_name, sep=""))
+data <- fread(paste(file_path2, file_name, sep=""))
 vars_to_convert <- c('NAME_TYPE_SUITE', 'NAME_CONTRACT_TYPE')
+data_type <- c('factor', 'factor')
+convertToDataType(data, vars_to_convert, data_type)
+
+#read column names and their classes  
+vars <- readColNamesClasses(data)
 
 readColNamesClasses(data)
 
@@ -827,20 +833,50 @@ readColNamesClasses <- function(data){
     
 }
 
+data_type <- "factor"
 
-convertToFactor <- function(data, vars_to_convert){
-  
+convertToDataType <- function(data, vars_to_convert, data_type){
+
   #read column names and their classes  
   vars <- readColNamesClasses(data)
   #check whether we need to perfrom further stepas
-  if (sum(vars$column_names %in% vars_to_convert) != 0){
-    #make the final seceltion to convert to factor 
-    selection <- vars$column_names[vars$column_names %in% vars_to_convert]
-    #conversion (it is taken from https://stackoverflow.com/questions/16943939/elegantly-assigning-multiple-columns-in-data-table-with-lapply/33000778#33000778)
-    data[, (selection) := lapply(selection, function(x) {as.factor(data[[x]])})]
-    
-  }
+  data_type <- data_type[vars_to_convert %in% vars$column_names]
+  vars_to_convert <- vars_to_convert[vars_to_convert %in% vars$column_names]
   
+  
+  if (length(vars_to_convert) != 0){
+
+    for (col in vars_to_convert){
+        
+        check <- vars_to_convert %in% col
+      
+      if(data_type[check] == 'factor'){
+        #conversion (it is taken from https://stackoverflow.com/questions/16943939/elegantly-assigning-multiple-columns-in-data-table-with-lapply/33000778#33000778)
+        data[, (col) := lapply(col, function(x) {as.factor(data[[x]])})]
+      }
+      
+      if(data_type[check] == 'character'){
+        #conversion (it is taken from https://stackoverflow.com/questions/16943939/elegantly-assigning-multiple-columns-in-data-table-with-lapply/33000778#33000778)
+        data[, (selection) := lapply(col, function(x) {as.character(data[[x]])})]
+      }
+  
+      if(data_type[check] == 'integer'){
+        #conversion (it is taken from https://stackoverflow.com/questions/16943939/elegantly-assigning-multiple-columns-in-data-table-with-lapply/33000778#33000778)
+        data[, (col) := lapply(col, function(x) {as.integer(data[[x]])})]
+      }    
+    
+      if(data_type[check] == 'numeric'){
+        #conversion (it is taken from https://stackoverflow.com/questions/16943939/elegantly-assigning-multiple-columns-in-data-table-with-lapply/33000778#33000778)
+        data[, (col) := lapply(col, function(x) {as.numeric(data[[x]])})]
+      }
+      
+      if(data_type[check] == 'date'){
+        #conversion (it is taken from https://stackoverflow.com/questions/16943939/elegantly-assigning-multiple-columns-in-data-table-with-lapply/33000778#33000778)
+        data[, (col) := lapply(col, function(x) {as.Date(data[[x]])})]
+      }  
+      
+    }
+  }
   return (data)
 }
  
