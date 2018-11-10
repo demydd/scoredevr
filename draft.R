@@ -1,7 +1,7 @@
 library(data.table)
 library(stringr)
 library(smbinning)
-library(caret)
+#library(caret)
 
 data(chileancredit)
 #old_dir <- getwd()
@@ -58,6 +58,7 @@ binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_typ
 binned_vectors <- binVector(initial_data_updated, interval_qty, selected_vars, gb)
 
 summary_and_binned_portfolio <- binPortfolioAndSummary(binned_factor_table, binned_vectors)
+descriptiveStatistics <- calcDescStat
 
 #add WOE and IV values to interval summary
 interval_summary_WOE_IV <- calcWOEIV(summary_and_binned_portfolio[[1]])
@@ -841,6 +842,7 @@ readColNamesClasses <- function(data){
   
 }
 
+data_type <- "factor"
 
 convertToDataType <- function(data, vars_to_convert, data_type){
   
@@ -914,6 +916,64 @@ binPortfolioAndSummary <- function(binned_factor_table, binned_vector_table){
 }
 
 
+calcDescStat <- function(data, selected_vars){
+  
+  #vector of column names[index]
+  column_names <- names(data)
+  if (is.null(selected_vars)) selected_vars <- column_names
+  column_names <- column_names[column_names %in% selected_vars]
+  col <- column_names[1]
+
+  #data table to store the statistic output  
+  statSummary <- data.table( variable = as.character()
+                            ,data_type = as.character()
+                            ,minVal = as.numeric()
+                            ,firstQuantile = as.numeric()
+                            ,medianVal = as.numeric()
+                            ,meanVal = as.numeric()
+                            ,modeVal = as.numeric()
+                            ,thirdQuantile = as.numeric()
+                            ,maxVal = as.numeric()
+                            ,stdDev = as.numeric()
+                            
+                           )
+  
+  #loop all integer, numeric columns to collect descriptive statistics
+  for(col in column_names){
+    classVal <- class(unlist(data[, ..col]))
+    #check the column class  
+    if (classVal %in% c('integer', 'numeric')){
+      #the vector to process
+      vector_desc <- unlist(data[, ..col])
+      #quantiles (median is the upper limit of the 2nd quantile)
+      quants <- quantile(vector_desc, probs = c(0, 0.25, 0.50, .75, 1), na.rm = TRUE)
+      
+      #descriptive statistics
+      minVal <- min(vector_desc, na.rm = TRUE)
+      firstQuantile <- quants[2]
+      medianVal <- median(vector_desc, na.rm = TRUE)
+      meanVal <- mean(vector_desc, na.rm = TRUE)
+      
+      ux <- unique(vector_desc[!is.na(vector_desc)])
+      modeVal <- ux[which.max(tabulate(match(vector_desc[!is.na(vector_desc)], ux)))]
+      
+      thirdQuantile <- quants[4]
+      maxVal <- max(vector_desc, na.rm = TRUE) 
+      stdDev <- sd(vector_desc, na.rm = TRUE)
+      
+      #collect the output per each column
+      row <- data.frame(variable=col, data_type = classVal, minVal, firstQuantile,medianVal, meanVal, modeVal, thirdQuantile, maxVal, stdDev)
+      statSummary <- rbind(statSummary, row)
+  
+    }
+        
+      return(statSummary)
+  }
+  
+  
+}
+
+summary(data)
 
 
 #rm(list = ls())
