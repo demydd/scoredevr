@@ -1,9 +1,10 @@
 library(data.table)
 library(stringr)
 library(smbinning)
-#library(caret)
+library(caret)
 
-data(chileancredit)
+#install.packages("smbinning")
+#data(chileancredit)
 #old_dir <- getwd()
 #new_dir <- "D:\\Demyd\\Personal\\R"
 #setwd(new_dir)
@@ -13,14 +14,16 @@ file_path2 <- 'C:\\Users\\Demyd_Dzyuban\\Documents\\Demyd\\Personal\\Kaggle\\'
 file_name <- 'application_train.csv'
 
 data <- fread(paste(file_path, file_name, sep=""))
-vars_to_convert <- c('NAME_TYPE_SUITE', 'NAME_CONTRACT_TYPE')
-data_type <- c('factor', 'factor')
+classSummary <- readColNamesClasses(data)
+sum(classSummary[,2] == 'factor')
+vars_to_convert <- c('NAME_CONTRACT_TYPE', 'CODE_GENDER', 'FLAG_OWN_CAR')
+data_type <- c('factor', 'factor', 'factor')
 data_converted <- convertToDataType(data, vars_to_convert, data_type)
 
 #read column names and their classes  
-vars <- readColNamesClasses(data_converted)
+#vars <- readColNamesClasses(data_converted)
 
-readColNamesClasses(data_converted)
+#readColNamesClasses(data_converted)
 
 
 #the table to collect aggregated info about interval distribution of each variable
@@ -37,31 +40,49 @@ initial_intervals_summary <- data.frame(  variable = as.character()
                                           ,bad = as.integer()
 )
 
-names(chileancredit)[1:3]
+#names(chileancredit)[1:3]
 
-initial_data <- as.data.table(chileancredit)
+#initial_data <- as.data.table(chileancredit)
+initial_data <- data
 #qty of attributes to bin
 interval_qty <- 20
 #the length of the predictor for binning
 column_length <- dim(initial_data)[1]
 #GOOD/BAD column name
-good_bad <- "fgood"
+good_bad <- "TARGET"
 #GOOD/BAD vector
 gb <- as.vector(unlist(initial_data[, ..good_bad]))
 #selected variables to bin
-selected_vars <- selectVars(initial_data, c("fgood cbs1 cbs2 cbs3 dep cbnew cbdpd pmt"), good_bad)
+selected_vars <- selectVars(initial_data, c("TARGET 
+                                             SK_ID_CURR 
+                                             NAME_CONTRACT_TYPE 
+                                             CODE_GENDER
+                                             FLAG_OWN_CAR 
+                                             AMT_REQ_CREDIT_BUREAU_DAY 
+                                             AMT_REQ_CREDIT_BUREAU_WEEK 
+                                             AMT_REQ_CREDIT_BUREAU_MON 
+                                             AMT_REQ_CREDIT_BUREAU_QRT 
+                                             AMT_REQ_CREDIT_BUREAU_YEAR")
+                            , good_bad)
+
+#check the selected vars with existing col names
+selected_vars <- names(data)[names(data) %in% selected_vars]
+
 #data set to be processed
-initial_data_updated <- as.data.table(chileancredit[,c(names(chileancredit) %in% selected_vars)])
-names(initial_data_updated) <- selected_vars
+initial_data_updated <- as.data.table(data[ , ..selected_vars])
+
 #processed factor table (ready for binning as a vector)
-binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_type = 1, gb = gb)
+binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_type = 3, gb = gb)
 binned_vectors <- binVector(initial_data_updated, interval_qty, selected_vars, gb)
 
 summary_and_binned_portfolio <- binPortfolioAndSummary(binned_factor_table, binned_vectors)
-descriptiveStatistics <- calcDescStat
+descriptiveStatistics <- calcDescStat(data, selected_vars)
 
 #add WOE and IV values to interval summary
 interval_summary_WOE_IV <- calcWOEIV(summary_and_binned_portfolio[[1]])
+
+#interval_summary_WOE_IV[interval_summary_WOE_IV$variable == 'AMT_REQ_CREDIT_BUREAU_YEAR']
+ 
 #bin portfolio with WOE values
 binned_portfolio_WOE <- binPortfolioWoe(summary_and_binned_portfolio[[2]], interval_summary_WOE_IV)
 #calculate correlation
@@ -84,6 +105,10 @@ scoreDistSummary <- calcWOEIV(scoreDist[[2]])
 debugonce(calcGini)
 gini_square <- calcGini(scoreDistSummary)
 gini <- 1 - sum(gini_square$gini_square)
+
+gini_square$good
+
+sum(gini_square$KS_diff)
 
 ############################################################################################################
 #select the necessary variable and reduce the data table
@@ -612,9 +637,9 @@ calcWOEIV <- function(interval_summary, rounding = 4){
   , by = .(variable)
   ]
   #calculate basic values (cumulative) - part 2
-  interval_summary[ , `:=`(   good_rate_cum = ifelse(total_cum == 0, 0, round(good_cum/total_cum, rounding))
-                              ,bad_rate_cum = ifelse(total_cum == 0, 0, round(bad_cum/total_cum, rounding))
-                              ,good_odds = ifelse(bad == 0, 0, round(good/bad, rounding))
+  interval_summary[ , `:=`(    good_rate_cum = ifelse(total_cum == 0, 0, round(good_cum/max(good_cum), rounding))
+                              ,bad_rate_cum = ifelse(total_cum == 0, 0, round(bad_cum/max(bad_cum), rounding))
+                              ,good_odds = ifelse(bad == 0, 0, round(good_rate/bad_rate, rounding))
                               
   )
   , by = .(variable)
@@ -797,31 +822,20 @@ calcScore <- function(data, summaryWOE, modelOutput, x_vars, good_bad){
 calcGini <- function(scoreDistSummary, rounding = 10){
   #browser()
   #make initial values for gini calculation
-  scoreDistSummary[ ,`:=`( KS_diff = bad_rate_cum - good_rate_cum
-                           ,BS = if(max(bad_rate_cum) == 0){
-                             rep(0, length(bad_rate_cum))
-                           } else{
-                             round(bad_rate_cum / max(bad_rate_cum), digits = rounding)
-                           }
-                           ,GS =   if(max(good_rate_cum) == 0){
-                             rep(0, length(good_rate_cum))
-                           } else{
-                             round(good_rate_cum / max(good_rate_cum), digits = rounding)
-                           }
-  )
-  ]
+  scoreDistSummary[ ,`:=`(KS_diff = bad_rate_cum - good_rate_cum)
+                 ]
   
   #to make vector of Bads diff (Bi-B(i-1))
-  BS_start = scoreDistSummary$BS[1:length(scoreDistSummary$BS) - 1]
-  BS_end = scoreDistSummary$BS[2:length(scoreDistSummary$BS)]
+  BS_start = scoreDistSummary$bad_rate_cum[1:length(scoreDistSummary$bad_rate_cum) - 1]
+  BS_end = scoreDistSummary$bad_rate_cum[2:length(scoreDistSummary$bad_rate_cum)]
   
   #to make vector of Goods diff (Gi-G(i-1))
-  GS_start = scoreDistSummary$GS[1:length(scoreDistSummary$GS) - 1]
-  GS_end = scoreDistSummary$GS[2:length(scoreDistSummary$GS)]
+  GS_start = scoreDistSummary$good_rate_cum[1:length(scoreDistSummary$good_rate_cum) - 1]
+  GS_end = scoreDistSummary$good_rate_cum[2:length(scoreDistSummary$good_rate_cum)]
   
   #BS and GS total
-  scoreDistSummary[, `:=`(   BS_final = c(bad_rate[1], BS_end - BS_start) 
-                             ,GS_final = c(good_rate[1], GS_end + GS_start)
+  scoreDistSummary[, `:=`(    BS_final = c(bad_rate_cum[1], BS_end - BS_start) 
+                             ,GS_final = c(good_rate_cum[1], GS_end + GS_start)
   )
   ]
   
@@ -916,8 +930,8 @@ binPortfolioAndSummary <- function(binned_factor_table, binned_vector_table){
 }
 
 
-calcDescStat <- function(data, selected_vars){
-  
+calcDescStat <- function(data, selected_vars, rounding = 5){
+ 
   #vector of column names[index]
   column_names <- names(data)
   if (is.null(selected_vars)) selected_vars <- column_names
@@ -949,17 +963,17 @@ calcDescStat <- function(data, selected_vars){
       quants <- quantile(vector_desc, probs = c(0, 0.25, 0.50, .75, 1), na.rm = TRUE)
       
       #descriptive statistics
-      minVal <- min(vector_desc, na.rm = TRUE)
-      firstQuantile <- quants[2]
-      medianVal <- median(vector_desc, na.rm = TRUE)
-      meanVal <- mean(vector_desc, na.rm = TRUE)
+      minVal <- round(min(vector_desc, na.rm = TRUE), rounding)
+      firstQuantile <- round(quants[2], rounding)
+      medianVal <- round(median(vector_desc, na.rm = TRUE), rounding)
+      meanVal <- round(mean(vector_desc, na.rm = TRUE), rounding)
       
       ux <- unique(vector_desc[!is.na(vector_desc)])
-      modeVal <- ux[which.max(tabulate(match(vector_desc[!is.na(vector_desc)], ux)))]
+      modeVal <- round(ux[which.max(tabulate(match(vector_desc[!is.na(vector_desc)], ux)))], rounding)
       
-      thirdQuantile <- quants[4]
-      maxVal <- max(vector_desc, na.rm = TRUE) 
-      stdDev <- sd(vector_desc, na.rm = TRUE)
+      thirdQuantile <- round(quants[4], rounding)
+      maxVal <- round(max(vector_desc, na.rm = TRUE), rounding) 
+      stdDev <- round(sd(vector_desc, na.rm = TRUE), rounding)
       
       #collect the output per each column
       row <- data.frame(variable=col, data_type = classVal, minVal, firstQuantile,medianVal, meanVal, modeVal, thirdQuantile, maxVal, stdDev)
@@ -967,9 +981,9 @@ calcDescStat <- function(data, selected_vars){
   
     }
         
-      return(statSummary)
   }
   
+  return(statSummary)  
   
 }
 
