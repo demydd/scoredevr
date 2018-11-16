@@ -108,8 +108,6 @@ gini <- 1 - sum(gini_square$gini_square)
 
 gini_square$good
 
-sum(gini_square$KS_diff)
-
 ############################################################################################################
 #select the necessary variable and reduce the data table
 selectVars <- function(initial_data,  column_names, good_bad){
