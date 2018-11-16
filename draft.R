@@ -987,8 +987,19 @@ calcDescStat <- function(data, selected_vars, rounding = 5){
   
 }
 
-summary(data)
 
+scaleData <- function(data, ...){
+  
+  scale(data, ... )
+  
+}
+
+
+scaleData(x, center = FALSE, scale = TRUE)
+
+
+
+summary(data)
 
 #rm(list = ls())
 #gc()
