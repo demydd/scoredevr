@@ -13,7 +13,7 @@ file_path <- 'D:\\Demyd\\Personal\\R\\kaggle\\'
 file_path2 <- 'C:\\Users\\Demyd_Dzyuban\\Documents\\Demyd\\Personal\\Kaggle\\'
 file_name <- 'application_train.csv'
 
-data <- fread(paste(file_path2, file_name, sep=""))
+data <- fread(paste(file_path, file_name, sep=""))
 classSummary <- readColNamesClasses(data)
 sum(classSummary[,2] == 'factor')
 vars_to_convert <- c('NAME_CONTRACT_TYPE', 'CODE_GENDER', 'FLAG_OWN_CAR')
@@ -66,8 +66,8 @@ selected_vars <- selectVars(initial_data, good_bad,
                                AMT_REQ_CREDIT_BUREAU_MON 
                                AMT_REQ_CREDIT_BUREAU_QRT 
                                AMT_REQ_CREDIT_BUREAU_YEAR"
-                              )
-                            )
+                             )
+                          )
 
 #check the selected vars with existing col names
 selected_vars <- names(data)[names(data) %in% selected_vars]
@@ -82,7 +82,8 @@ binned_vectors <- binVector(initial_data_updated, interval_qty, selected_vars, g
 summary_and_binned_portfolio <- binPortfolioAndSummary(binned_factor_table, binned_vectors)
 
 debugonce(calcDescStat)
-descriptiveStatistics <- calcDescStat(data, selected_vars)
+data_converted <- convertToDataType(data, 'NAME_CONTRACT_TYPE', 'factor')
+descriptiveStatistics <- calcDescStat(data_converted, selected_vars)
 
 #add WOE and IV values to interval summary
 interval_summary_WOE_IV <- calcWOEIV(summary_and_binned_portfolio[[1]])
@@ -959,7 +960,7 @@ calcDescStat <- function(data, selected_vars, rounding = 5){
                             ,qty_NA = NA_integer_
                             ,qty_level = NA_integer_
                             ,factor_levels = NA_character_
-                            ,quants = NA_integer_
+                            #,quants = NA_integer_
                             ,minVal = NA_integer_
                             ,firstQuantile = NA_integer_
                             ,medianVal = NA_integer_
@@ -1008,7 +1009,7 @@ calcDescStat <- function(data, selected_vars, rounding = 5){
                         ,qty_NA
                         ,qty_level
                         ,factor_levels
-                        ,quants
+                        #,quants
                         ,minVal
                         ,firstQuantile
                         ,medianVal
@@ -1054,7 +1055,7 @@ calcDescStat <- function(data, selected_vars, rounding = 5){
                         ,qty_NA
                         ,qty_level
                         ,factor_levels
-                        ,quants
+                        #,quants
                         ,minVal
                         ,firstQuantile
                         ,medianVal
