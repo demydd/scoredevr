@@ -13,7 +13,7 @@ file_path <- 'D:\\Demyd\\Personal\\R\\kaggle\\'
 file_path2 <- 'C:\\Users\\Demyd_Dzyuban\\Documents\\Demyd\\Personal\\Kaggle\\'
 file_name <- 'application_train.csv'
 
-data <- fread(paste(file_path, file_name, sep=""))
+data <- fread(paste(file_path2, file_name, sep=""))
 classSummary <- readColNamesClasses(data)
 sum(classSummary[,2] == 'factor')
 vars_to_convert <- c('NAME_CONTRACT_TYPE', 'CODE_GENDER', 'FLAG_OWN_CAR')
@@ -53,17 +53,21 @@ good_bad <- "TARGET"
 #GOOD/BAD vector
 gb <- as.vector(unlist(initial_data[, ..good_bad]))
 #selected variables to bin
-selected_vars <- selectVars(initial_data, c("TARGET 
-                                             SK_ID_CURR 
-                                             NAME_CONTRACT_TYPE 
-                                             CODE_GENDER
-                                             FLAG_OWN_CAR 
-                                             AMT_REQ_CREDIT_BUREAU_DAY 
-                                             AMT_REQ_CREDIT_BUREAU_WEEK 
-                                             AMT_REQ_CREDIT_BUREAU_MON 
-                                             AMT_REQ_CREDIT_BUREAU_QRT 
-                                             AMT_REQ_CREDIT_BUREAU_YEAR")
-                            , good_bad)
+selected_vars <- selectVars(initial_data, good_bad, all.columns = TRUE)
+                            
+selected_vars <- selectVars(initial_data, good_bad,
+                            c("TARGET 
+                               SK_ID_CURR 
+                               NAME_CONTRACT_TYPE 
+                               CODE_GENDER
+                               FLAG_OWN_CAR 
+                               AMT_REQ_CREDIT_BUREAU_DAY 
+                               AMT_REQ_CREDIT_BUREAU_WEEK 
+                               AMT_REQ_CREDIT_BUREAU_MON 
+                               AMT_REQ_CREDIT_BUREAU_QRT 
+                               AMT_REQ_CREDIT_BUREAU_YEAR"
+                              )
+                            )
 
 #check the selected vars with existing col names
 selected_vars <- names(data)[names(data) %in% selected_vars]
@@ -76,6 +80,8 @@ binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_typ
 binned_vectors <- binVector(initial_data_updated, interval_qty, selected_vars, gb)
 
 summary_and_binned_portfolio <- binPortfolioAndSummary(binned_factor_table, binned_vectors)
+
+debugonce(calcDescStat)
 descriptiveStatistics <- calcDescStat(data, selected_vars)
 
 #add WOE and IV values to interval summary
@@ -110,7 +116,16 @@ gini_square$good
 
 ############################################################################################################
 #select the necessary variable and reduce the data table
-selectVars <- function(initial_data,  column_names, good_bad){
+selectVars <- function( initial_data
+                       ,good_bad
+                       ,column_names = NULL
+                       ,all.columns = FALSE
+                      ){
+  
+  if(all.columns == TRUE){
+    column_names <- readColNamesClasses(initial_data)
+    x_var <- column_names$column_names
+  } else {
   
   #remove end of line
   x_var <- gsub("[\n]", "", column_names)
@@ -129,6 +144,7 @@ selectVars <- function(initial_data,  column_names, good_bad){
   x_var <- x_var[x_var != good_bad]
   
   print(paste("predictors selected:",length(x_var)))
+  }
   
   return (x_var)
   
@@ -937,26 +953,84 @@ calcDescStat <- function(data, selected_vars, rounding = 5){
   col <- column_names[1]
 
   #data table to store the statistic output  
-  statSummary <- data.table( variable = as.character()
-                            ,data_type = as.character()
-                            ,minVal = as.numeric()
-                            ,firstQuantile = as.numeric()
-                            ,medianVal = as.numeric()
-                            ,meanVal = as.numeric()
-                            ,modeVal = as.numeric()
-                            ,thirdQuantile = as.numeric()
-                            ,maxVal = as.numeric()
-                            ,stdDev = as.numeric()
-                            
+  statSummary <- data.table( variable = NA_character_
+                            ,data_type = NA_character_
+                            ,qty_total = NA_integer_
+                            ,qty_NA = NA_integer_
+                            ,qty_level = NA_integer_
+                            ,factor_levels = NA_character_
+                            ,quants = NA_integer_
+                            ,minVal = NA_integer_
+                            ,firstQuantile = NA_integer_
+                            ,medianVal = NA_integer_
+                            ,meanVal = NA_integer_
+                            ,modeVal = NA_integer_
+                            ,thirdQuantile = NA_integer_
+                            ,maxVal = NA_integer_
+                            ,stdDev = NA_integer_
                            )
   
   #loop all integer, numeric columns to collect descriptive statistics
   for(col in column_names){
+    print(col)
     classVal <- class(unlist(data[, ..col]))
-    #check the column class  
-    if (classVal %in% c('integer', 'numeric')){
+    #check data for factor and character classes
+    if (classVal %in% c('character', 'factor')){
       #the vector to process
       vector_desc <- unlist(data[, ..col])
+      #qty of records 
+      qty_total <- length(vector_desc)
+      #qty of NA items
+      qty_NA <- sum(is.na(vector_desc))
+      #level qty
+      qty_level <- ifelse(classVal == 'factor', length(levels(vector_desc)), 0)
+      factor_levels <- ifelse(classVal == 'factor', length(levels(vector_desc)), NA)
+      #quantiles (median is the upper limit of the 2nd quantile)
+      quants <- NA 
+      
+      #descriptive statistics
+      minVal <- NA
+      firstQuantile <- NA
+      medianVal <- NA
+      meanVal <- NA
+      
+      ux <- NA
+      modeVal <- NA
+      
+      thirdQuantile <- NA
+      maxVal <- NA 
+      stdDev <- NA
+      
+      #collect the output per each column
+      row <- data.frame( variable = col
+                        ,data_type = classVal
+                        ,qty_total
+                        ,qty_NA
+                        ,qty_level
+                        ,factor_levels
+                        ,quants
+                        ,minVal
+                        ,firstQuantile
+                        ,medianVal
+                        ,meanVal
+                        ,modeVal
+                        ,thirdQuantile
+                        ,maxVal
+                        ,stdDev
+                       )
+      statSummary <- rbind(statSummary, row)
+    }  
+    #check data for 'integer', 'numeric', 'float' classes  
+    if (classVal %in% c('integer', 'numeric', 'float')){
+      #the vector to process
+      vector_desc <- unlist(data[, ..col])
+      #qty of records 
+      qty_total <- length(vector_desc)
+      #qty of NA items
+      qty_NA <- sum(is.na(vector_desc))
+      #qty of levels
+      qty_level <- 0
+      factor_levels <- NA
       #quantiles (median is the upper limit of the 2nd quantile)
       quants <- quantile(vector_desc, probs = c(0, 0.25, 0.50, .75, 1), na.rm = TRUE)
       
@@ -974,7 +1048,23 @@ calcDescStat <- function(data, selected_vars, rounding = 5){
       stdDev <- round(sd(vector_desc, na.rm = TRUE), rounding)
       
       #collect the output per each column
-      row <- data.frame(variable=col, data_type = classVal, minVal, firstQuantile,medianVal, meanVal, modeVal, thirdQuantile, maxVal, stdDev)
+      row <- data.frame( variable = col
+                        ,data_type = classVal
+                        ,qty_total
+                        ,qty_NA
+                        ,qty_level
+                        ,factor_levels
+                        ,quants
+                        ,minVal
+                        ,firstQuantile
+                        ,medianVal
+                        ,meanVal
+                        ,modeVal
+                        ,thirdQuantile
+                        ,maxVal
+                        ,stdDev
+                       )
+      
       statSummary <- rbind(statSummary, row)
   
     }
