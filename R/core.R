@@ -1,6 +1,6 @@
 library(data.table)
 library(stringr)
-library(smbinning)
+#ibrary(smbinning)
 library(caret)
 
 #install.packages("smbinning")
@@ -1082,13 +1082,3 @@ scaleData <- function(data, ...){
   scale(data, ... )
   
 }
-
-
-scaleData(x, center = FALSE, scale = TRUE)
-
-
-
-summary(data)
-
-#rm(list = ls())
-#gc()

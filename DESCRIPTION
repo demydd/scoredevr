@@ -1,0 +1,35 @@
+Package: scoredevr
+Type: Package
+Title: to build a score card
+Version: 0.1.0
+Date:03-03-2019 
+Author: Demyd Dzyuban
+Maintainer: Demyd Dzyuban <demydd@gmail.com>
+Description: The package is developed to automate all key aspects of score card development.
+             Procedures are built to save all key data of all score card development steps.
+             The data are saved to .csv files and quite easy to read by other useres of score cards.
+             The package contains the graphical option to present some key indicators.
+License: MIT
+LazyData: TRUE
+RoxygenNote: 5.0.1
+Imports:
+        dplyr,
+        stringr,
+        reshape2,
+        ggplot2,
+        lattice,
+        lubridate,
+        grid,
+        gridExtra,
+        corrgram,
+        caret,
+        pROC,
+        manipulate,
+        data.table,
+        iotools,
+        compiler,
+        readr,
+        modeest
+Suggests:
+         RODBC
+
