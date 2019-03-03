@@ -54,20 +54,20 @@ good_bad <- "TARGET"
 gb <- as.vector(unlist(initial_data[, ..good_bad]))
 #selected variables to bin
 selected_vars <- selectVars(initial_data, good_bad, all.columns = TRUE)
-                            
+
 selected_vars <- selectVars(initial_data, good_bad,
                             c("TARGET 
-                               SK_ID_CURR 
-                               NAME_CONTRACT_TYPE 
-                               CODE_GENDER
-                               FLAG_OWN_CAR 
-                               AMT_REQ_CREDIT_BUREAU_DAY 
-                               AMT_REQ_CREDIT_BUREAU_WEEK 
-                               AMT_REQ_CREDIT_BUREAU_MON 
-                               AMT_REQ_CREDIT_BUREAU_QRT 
-                               AMT_REQ_CREDIT_BUREAU_YEAR"
-                             )
-                          )
+                              SK_ID_CURR 
+                              NAME_CONTRACT_TYPE 
+                              CODE_GENDER
+                              FLAG_OWN_CAR 
+                              AMT_REQ_CREDIT_BUREAU_DAY 
+                              AMT_REQ_CREDIT_BUREAU_WEEK 
+                              AMT_REQ_CREDIT_BUREAU_MON 
+                              AMT_REQ_CREDIT_BUREAU_QRT 
+                              AMT_REQ_CREDIT_BUREAU_YEAR"
+                            )
+                            )
 
 #check the selected vars with existing col names
 selected_vars <- names(data)[names(data) %in% selected_vars]
@@ -89,7 +89,7 @@ descriptiveStatistics <- calcDescStat(data_converted, selected_vars)
 interval_summary_WOE_IV <- calcWOEIV(summary_and_binned_portfolio[[1]])
 
 #interval_summary_WOE_IV[interval_summary_WOE_IV$variable == 'AMT_REQ_CREDIT_BUREAU_YEAR']
- 
+
 #bin portfolio with WOE values
 binned_portfolio_WOE <- binPortfolioWoe(summary_and_binned_portfolio[[2]], interval_summary_WOE_IV)
 #calculate correlation
@@ -118,33 +118,33 @@ gini_square$good
 ############################################################################################################
 #select the necessary variable and reduce the data table
 selectVars <- function( initial_data
-                       ,good_bad
-                       ,column_names = NULL
-                       ,all.columns = FALSE
-                      ){
+                        ,good_bad
+                        ,column_names = NULL
+                        ,all.columns = FALSE
+){
   
   if(all.columns == TRUE){
     column_names <- readColNamesClasses(initial_data)
     x_var <- column_names$column_names
   } else {
-  
-  #remove end of line
-  x_var <- gsub("[\n]", "", column_names)
-  #convert single string value into character vector
-  x_var <- unlist(strsplit(x_var, " "))
-  #m <- x_var != ""
-  #index <- which(m %in% c(TRUE))
-  x_var <- x_var[x_var != ""]
-  #remove commented fields
-  commented <- grepl("#",x_var)
-  #index <- which((commented) %in% c(FALSE))
-  #purified vector with fields to model
-  x_var <- x_var[(commented) %in% c(FALSE)]
-  
-  # fields to be used in binning (numerics only)
-  x_var <- x_var[x_var != good_bad]
-  
-  print(paste("predictors selected:",length(x_var)))
+    
+    #remove end of line
+    x_var <- gsub("[\n]", "", column_names)
+    #convert single string value into character vector
+    x_var <- unlist(strsplit(x_var, " "))
+    #m <- x_var != ""
+    #index <- which(m %in% c(TRUE))
+    x_var <- x_var[x_var != ""]
+    #remove commented fields
+    commented <- grepl("#",x_var)
+    #index <- which((commented) %in% c(FALSE))
+    #purified vector with fields to model
+    x_var <- x_var[(commented) %in% c(FALSE)]
+    
+    # fields to be used in binning (numerics only)
+    x_var <- x_var[x_var != good_bad]
+    
+    print(paste("predictors selected:",length(x_var)))
   }
   
   return (x_var)
@@ -392,7 +392,7 @@ binFactor <- function(  initial_data_updated
 
 #the function to bin vector and factor data
 binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
-
+  
   initial_intervals_summary <- data.frame(   variable = as.character()
                                              ,variable_factor = as.character()
                                              ,column_final = as.character()
@@ -521,7 +521,7 @@ binColumn <- function(  vector_to_be_binned
   #loop to check all intervals and paste the order number of intervals
   for (i in 1:actual_vector_intervals_qty){
     
-
+    
     
     #check the first interval
     if(i == 1 && sum(vector_to_be_binned[!is.na(vector_to_be_binned)] < actual_vector_intervals[2, i]) > 0){
@@ -653,9 +653,9 @@ calcWOEIV <- function(interval_summary, rounding = 4){
   ]
   #calculate basic values (cumulative) - part 2
   interval_summary[ , `:=`(    good_rate_cum = ifelse(total_cum == 0, 0, round(good_cum/max(good_cum), rounding))
-                              ,bad_rate_cum = ifelse(total_cum == 0, 0, round(bad_cum/max(bad_cum), rounding))
-                              ,good_odds = ifelse(bad == 0, 0, round(good_rate/bad_rate, rounding))
-                              
+                               ,bad_rate_cum = ifelse(total_cum == 0, 0, round(bad_cum/max(bad_cum), rounding))
+                               ,good_odds = ifelse(bad == 0, 0, round(good_rate/bad_rate, rounding))
+                               
   )
   , by = .(variable)
   ]
@@ -838,7 +838,7 @@ calcGini <- function(scoreDistSummary, rounding = 10){
   #browser()
   #make initial values for gini calculation
   scoreDistSummary[ ,`:=`(KS_diff = bad_rate_cum - good_rate_cum)
-                 ]
+                    ]
   
   #to make vector of Bads diff (Bi-B(i-1))
   BS_start = scoreDistSummary$bad_rate_cum[1:length(scoreDistSummary$bad_rate_cum) - 1]
@@ -850,7 +850,7 @@ calcGini <- function(scoreDistSummary, rounding = 10){
   
   #BS and GS total
   scoreDistSummary[, `:=`(    BS_final = c(bad_rate_cum[1], BS_end - BS_start) 
-                             ,GS_final = c(good_rate_cum[1], GS_end + GS_start)
+                              ,GS_final = c(good_rate_cum[1], GS_end + GS_start)
   )
   ]
   
@@ -946,30 +946,30 @@ binPortfolioAndSummary <- function(binned_factor_table, binned_vector_table){
 
 
 calcDescStat <- function(data, selected_vars, rounding = 5){
- 
+  
   #vector of column names[index]
   column_names <- names(data)
   if (is.null(selected_vars)) selected_vars <- column_names
   column_names <- column_names[column_names %in% selected_vars]
   col <- column_names[1]
-
+  
   #data table to store the statistic output  
   statSummary <- data.table( variable = NA_character_
-                            ,data_type = NA_character_
-                            ,qty_total = NA_integer_
-                            ,qty_NA = NA_integer_
-                            ,qty_level = NA_integer_
-                            ,factor_levels = NA_character_
-                            #,quants = NA_integer_
-                            ,minVal = NA_integer_
-                            ,firstQuantile = NA_integer_
-                            ,medianVal = NA_integer_
-                            ,meanVal = NA_integer_
-                            ,modeVal = NA_integer_
-                            ,thirdQuantile = NA_integer_
-                            ,maxVal = NA_integer_
-                            ,stdDev = NA_integer_
-                           )
+                             ,data_type = NA_character_
+                             ,qty_total = NA_integer_
+                             ,qty_NA = NA_integer_
+                             ,qty_level = NA_integer_
+                             ,factor_levels = NA_character_
+                             #,quants = NA_integer_
+                             ,minVal = NA_integer_
+                             ,firstQuantile = NA_integer_
+                             ,medianVal = NA_integer_
+                             ,meanVal = NA_integer_
+                             ,modeVal = NA_integer_
+                             ,thirdQuantile = NA_integer_
+                             ,maxVal = NA_integer_
+                             ,stdDev = NA_integer_
+  )
   
   #loop all integer, numeric columns to collect descriptive statistics
   for(col in column_names){
@@ -1004,21 +1004,21 @@ calcDescStat <- function(data, selected_vars, rounding = 5){
       
       #collect the output per each column
       row <- data.frame( variable = col
-                        ,data_type = classVal
-                        ,qty_total
-                        ,qty_NA
-                        ,qty_level
-                        ,factor_levels
-                        #,quants
-                        ,minVal
-                        ,firstQuantile
-                        ,medianVal
-                        ,meanVal
-                        ,modeVal
-                        ,thirdQuantile
-                        ,maxVal
-                        ,stdDev
-                       )
+                         ,data_type = classVal
+                         ,qty_total
+                         ,qty_NA
+                         ,qty_level
+                         ,factor_levels
+                         #,quants
+                         ,minVal
+                         ,firstQuantile
+                         ,medianVal
+                         ,meanVal
+                         ,modeVal
+                         ,thirdQuantile
+                         ,maxVal
+                         ,stdDev
+      )
       statSummary <- rbind(statSummary, row)
     }  
     #check data for 'integer', 'numeric', 'float' classes  
@@ -1050,26 +1050,26 @@ calcDescStat <- function(data, selected_vars, rounding = 5){
       
       #collect the output per each column
       row <- data.frame( variable = col
-                        ,data_type = classVal
-                        ,qty_total
-                        ,qty_NA
-                        ,qty_level
-                        ,factor_levels
-                        #,quants
-                        ,minVal
-                        ,firstQuantile
-                        ,medianVal
-                        ,meanVal
-                        ,modeVal
-                        ,thirdQuantile
-                        ,maxVal
-                        ,stdDev
-                       )
+                         ,data_type = classVal
+                         ,qty_total
+                         ,qty_NA
+                         ,qty_level
+                         ,factor_levels
+                         #,quants
+                         ,minVal
+                         ,firstQuantile
+                         ,medianVal
+                         ,meanVal
+                         ,modeVal
+                         ,thirdQuantile
+                         ,maxVal
+                         ,stdDev
+      )
       
       statSummary <- rbind(statSummary, row)
-  
+      
     }
-        
+    
   }
   
   return(statSummary)  
