@@ -3,118 +3,6 @@ library(stringr)
 #ibrary(smbinning)
 library(caret)
 
-#install.packages("smbinning")
-#data(chileancredit)
-#old_dir <- getwd()
-#new_dir <- "D:\\Demyd\\Personal\\R"
-#setwd(new_dir)
-
-file_path <- 'D:\\Demyd\\Personal\\R\\kaggle\\'
-file_path2 <- 'C:\\Users\\Demyd_Dzyuban\\Documents\\Demyd\\Personal\\Kaggle\\'
-file_name <- 'application_train.csv'
-
-data <- fread(paste(file_path, file_name, sep=""))
-classSummary <- readColNamesClasses(data)
-sum(classSummary[,2] == 'factor')
-vars_to_convert <- c('NAME_CONTRACT_TYPE', 'CODE_GENDER', 'FLAG_OWN_CAR')
-data_type <- c('factor', 'factor', 'factor')
-data_converted <- convertToDataType(data, vars_to_convert, data_type)
-
-#read column names and their classes  
-#vars <- readColNamesClasses(data_converted)
-
-#readColNamesClasses(data_converted)
-
-
-#the table to collect aggregated info about interval distribution of each variable
-initial_intervals_summary <- data.frame(  variable = as.character()
-                                          ,variable_factor = as.character()
-                                          ,column_final = as.character()
-                                          ,interval_type = as.character()
-                                          ,interval_number = as.integer()
-                                          ,interval_str = as.character()
-                                          ,start = as.numeric()
-                                          ,end = as.numeric()
-                                          ,total = as.integer()
-                                          ,good = as.integer()
-                                          ,bad = as.integer()
-)
-
-#names(chileancredit)[1:3]
-
-#initial_data <- as.data.table(chileancredit)
-initial_data <- data
-#qty of attributes to bin
-interval_qty <- 20
-#the length of the predictor for binning
-column_length <- dim(initial_data)[1]
-#GOOD/BAD column name
-good_bad <- "TARGET"
-#GOOD/BAD vector
-gb <- as.vector(unlist(initial_data[, ..good_bad]))
-#selected variables to bin
-selected_vars <- selectVars(initial_data, good_bad, all.columns = TRUE)
-
-selected_vars <- selectVars(initial_data, good_bad,
-                            c("TARGET 
-                              SK_ID_CURR 
-                              NAME_CONTRACT_TYPE 
-                              CODE_GENDER
-                              FLAG_OWN_CAR 
-                              AMT_REQ_CREDIT_BUREAU_DAY 
-                              AMT_REQ_CREDIT_BUREAU_WEEK 
-                              AMT_REQ_CREDIT_BUREAU_MON 
-                              AMT_REQ_CREDIT_BUREAU_QRT 
-                              AMT_REQ_CREDIT_BUREAU_YEAR"
-                            )
-                            )
-
-#check the selected vars with existing col names
-selected_vars <- names(data)[names(data) %in% selected_vars]
-
-#data set to be processed
-initial_data_updated <- as.data.table(data[ , ..selected_vars])
-
-#processed factor table (ready for binning as a vector)
-binned_factor_table <- binFactor(initial_data_updated, selected_vars, factor_type = 3, gb = gb)
-binned_vectors <- binVector(initial_data_updated, interval_qty, selected_vars, gb)
-
-summary_and_binned_portfolio <- binPortfolioAndSummary(binned_factor_table, binned_vectors)
-
-debugonce(calcDescStat)
-data_converted <- convertToDataType(data, 'NAME_CONTRACT_TYPE', 'factor')
-descriptiveStatistics <- calcDescStat(data_converted, selected_vars)
-
-#add WOE and IV values to interval summary
-interval_summary_WOE_IV <- calcWOEIV(summary_and_binned_portfolio[[1]])
-
-#interval_summary_WOE_IV[interval_summary_WOE_IV$variable == 'AMT_REQ_CREDIT_BUREAU_YEAR']
-
-#bin portfolio with WOE values
-binned_portfolio_WOE <- binPortfolioWoe(summary_and_binned_portfolio[[2]], interval_summary_WOE_IV)
-#calculate correlation
-corSummary <- calcCorrelation(binned_portfolio_WOE, cut_off_cor = 0.75)
-#add good/bad vector (1 and/or 0)
-binned_portfolio_WOE <- cbind(binned_portfolio_WOE, gb)
-names(binned_portfolio_WOE)[dim(binned_portfolio_WOE)[2]] <- good_bad 
-#calculate model
-modelOutput <- calcModel(binned_portfolio_WOE, selected_vars, good_bad, gb)
-#select variables by p-value
-p_value <- 0.99
-selectedModelVars <- rownames(modelOutput[[2]])[modelOutput[[2]][ , 4] < p_value]  
-#calculate score
-scored_portfolio <- calcScore(binned_portfolio_WOE, interval_summary_WOE_IV, modelOutput, selected_vars, good_bad)  
-#make score distribution over intervals
-scoreDist <- binVector(scored_portfolio, interval_qty, "score", gb)
-#add WOE and IV values to interval summary
-scoreDistSummary <- calcWOEIV(scoreDist[[2]])
-#Gini calculation
-debugonce(calcGini)
-gini_square <- calcGini(scoreDistSummary)
-gini <- 1 - sum(gini_square$gini_square)
-
-gini_square$good
-
 ############################################################################################################
 #select the necessary variable and reduce the data table
 selectVars <- function( initial_data
@@ -871,7 +759,6 @@ readColNamesClasses <- function(data){
   
 }
 
-data_type <- "factor"
 
 convertToDataType <- function(data, vars_to_convert, data_type){
   
