@@ -30,7 +30,9 @@ selectVars <- function( initial_data
     x_var <- x_var[(commented) %in% c(FALSE)]
     
     # fields to be used in binning (numerics only)
-    x_var <- x_var[x_var != good_bad]
+    if(!is.null(good_bad)) {  
+      x_var <- x_var[x_var != good_bad]
+    }
     
     print(paste("predictors selected:",length(x_var)))
   }
