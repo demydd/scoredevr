@@ -834,7 +834,7 @@ binPortfolioAndSummary <- function(binned_factor_table, binned_vector_table){
 }
 
 
-calcDescStat <- function(data, selected_vars, rounding = 5){
+calcDescStat <- function(data, selected_vars = NULL, rounding = 5){
   
   #vector of column names[index]
   column_names <- names(data)
