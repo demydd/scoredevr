@@ -51,7 +51,7 @@ binFactor <- function(  initial_data_updated
                         , rounding = 4){
   
   #the table to collect aggregated info about interval distribution of each variable
-  initial_intervals_summary <- data.frame(  variable = as.character()
+  initial_intervals_summary <- data.table(  variable = as.character()
                                             ,variable_factor = as.character()
                                             ,column_final = as.character()
                                             ,interval_type = as.character()
@@ -87,16 +87,32 @@ binFactor <- function(  initial_data_updated
   # OPTION1 - Dummy varuables. FOR loop to process all factors in vector per each level
   if (factor_type == 1){
     for (step in column_names_factor){
+    
+      #check whether there ar NA values -> add to levels extract below
       #define factor levels in the selected column
-      cycle <- levels(unlist(initial_data_updated[,..step]))
+
+        cycle <- unique(as.vector(unlist(initial_data_updated[,..step]))) 
+
       #FOR loop to process factor levels
       interval_number <- 1
       
       for(j in cycle){
         #define the vector with 1 and 0 per each level
-        condition <- as.integer(unlist(initial_data_updated[,..step]) == j)
-        condition[condition == 1] <- 2
-        condition[condition == 0] <- 1
+
+        if(is.na(j)){
+          condition <- as.integer(as.vector(unlist(is.na(initial_data_updated[,..step]))))          
+          condition[condition == 0] <- 2
+          condition[condition == 1] <- 3
+          condition <- condition - 2
+
+        }else{
+          condition <- as.integer(as.vector(unlist(initial_data_updated[,..step]) == j))
+          condition[condition == 0 | is.na(condition)] <- 2            
+          condition[condition == 1] <- 3
+          condition <- condition - 2
+        
+        } 
+
         #populate the temporary table
         tmp_table <- cbind(tmp_table, condition)
         #put names to new columns
@@ -156,16 +172,27 @@ binFactor <- function(  initial_data_updated
     
     for (step in column_names_factor){
       #add the integer vector
-      selection <- as.integer(unlist(initial_data_updated[,..step])) 
-      tmp_table <- cbind(tmp_table,  as.integer(unlist(initial_data_updated[,..step])))
+      selection <- as.integer(as.vector(unlist(initial_data_updated[,..step]))) 
+      tmp_table <- cbind(tmp_table,  as.vector(unlist(initial_data_updated[,..step])))
       names(tmp_table)[dim(tmp_table)[2]] <- step
       
       #put data into interval summary table
-      unique_intervals <- levels(unlist(initial_data_updated[,..step]))
+      unique_intervals <- unique(selection)
+      
+      if(sum(is.na(unique_intervals))>0){
+        unique_intervals <- sort(unique_intervals)
+        unique_intervals <- append(NA, unique_intervals)
+      }else{
+        unique_intervals <- sort(unique_intervals)
+      }
+      
+      NA_available <- sum(is.na(unique_intervals))
       for (inter in 1:length(unique_intervals)){
         
         #check for NA items
         if (is.na(unique_intervals[inter])){
+          tmp_table[, ..step]
+          
           initial_intervals_summary <- rbind(initial_intervals_summary, 
                                              data.frame(   variable = as.character(step)
                                                            ,variable_factor = as.character(unique_intervals[inter]) #variable <- 
@@ -194,32 +221,52 @@ binFactor <- function(  initial_data_updated
                                                           ,interval_str = as.character(paste(inter,"=", inter))  #interval_str <-       
                                                           ,start = as.numeric(inter) #start <- 
                                                           ,end = as.numeric(inter) #end <- 
-                                                          ,total = as.numeric(sum(selection == inter)) #total <- 
-                                                          ,good = as.numeric(sum(gb[selection == inter])) #good <- 
-                                                          ,bad = as.numeric(sum(selection == inter) - sum(gb[selection == inter])) #bad <- 
+                                                          ,total = as.numeric(sum(selection == unique_intervals[inter] & !is.na(selection))) #total <- 
+                                                          ,good = as.numeric(sum(gb[selection == unique_intervals[inter] & !is.na(selection)])) #good <- 
+                                                          ,bad = as.numeric(sum(selection == unique_intervals[inter] & !is.na(selection)) - sum(gb[selection == unique_intervals[inter] & !is.na(selection)]))
+                                                       ) #bad <- 
                                              )
-          )
+          
         }
         
       }    
       
+      # replace initial values of factors with new ones
+      initial_intervals_summary_tmp <- copy(initial_intervals_summary)
+      tmp_table$new <- tmp_table[ , ..step]
+      setkeyv(tmp_table, c("new"))
+      setkeyv(initial_intervals_summary_tmp, c("variable_factor"))
+      tmp_table[initial_intervals_summary_tmp, `:=`(new2 = i.interval_number)]
+      eval(substitute(tmp_table[, col_name] <- tmp_table$new2, list(col_name = step)))
+      
+      tmp_table$new <- NULL
+      tmp_table$new2 <- NULL
+      initial_intervals_summary_tmp <- NULL
+      
     }
     
-    
+
     
   }
   
-  # OPTION3 - FOR loop to process all factors as mean per each level
+  # OPTION3 - FOR loop to process all factors as mean quantaty of GOODs per each level
   if (factor_type == 3){
     for (step in column_names_factor){
       #define factor levels in the selected column
-      cycle <- levels(unlist(initial_data_updated[,..step]))
+      cycle <- unique(unlist(initial_data_updated[,..step]))
       #FOR loop to process factor levels
       for(j in cycle){
-        #define the vector with 1 and 0 per each level
-        condition <- unlist(initial_data_updated[,..step]) == j
+
         #calculate mean per each level 
-        mean_level <- round(mean(unlist(gb[condition]), na.rm = FALSE), rounding)
+        if(is.na(j)){
+          #define the vector with 1 and 0 per each level for NA
+          condition <- as.integer(as.vector(unlist(is.na(initial_data_updated[,..step]))))
+          mean_level <- round(mean(unlist(gb[condition]), na.rm = FALSE), rounding)
+        }else{
+          #define the vector with 1 and 0 per each level for non-NA
+          condition <- as.integer(as.vector(unlist(initial_data_updated[,..step]) == j))
+          mean_level <- round(mean(unlist(gb[condition]), na.rm = TRUE), rounding)
+        }
         #populate the temporary vector with interval numberlevel mean
         inter <- which(cycle %in% j)
         tmp_vector[condition] <- inter 
@@ -237,13 +284,11 @@ binFactor <- function(  initial_data_updated
                                                             ,interval_str = as.character(paste(mean_level,"=",mean_level))  #interval_str <-       
                                                             ,start = mean_level #start <- 
                                                             ,end = mean_level #end <- 
-                                                            ,total = sum(is.na(condition)) #total <- 
-                                                            ,good = sum(gb[is.na(condition)] == 1) #good <- 
-                                                            ,bad = sum(is.na(condition)) - sum(gb[is.na(condition)] == 1) #bad <- 
+                                                            ,total = sum(condition) #total <- 
+                                                            ,good = sum(gb[condition == 1]) #good <- 
+                                                            ,bad = sum(condition) - sum(gb[condition == 1]) #bad <- 
                                              )
           )
-          
-          
           
         } else {
           #check non-NA items
@@ -795,7 +840,7 @@ convertToDataType <- function(data, vars_to_convert, data_type){
       }
       
       if(data_type[check] == 'date'){
-        data[, (col) := lapply(col, function(x) {as.Date(data[[x]])})]
+        data[, (col) := lapply(col, function(x) {as.Date(data[[x]], format = "%d/%m/%Y")})]
       }  
       
     }
