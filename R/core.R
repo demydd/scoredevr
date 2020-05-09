@@ -328,6 +328,89 @@ binFactor <- function(  initial_data_updated
     
   }
   
+  # OPTION4 - FOR loop to process all factors as share to total per each  factor level of the factor 
+  if (factor_type == 4){
+    goods <- sum(gb)
+    
+    for (step in column_names_factor){
+      #define factor levels in the selected column
+      cycle <- as.vector(unique(unlist(initial_data_updated[,..step])))
+      
+      if(sum(is.na(cycle))>0){
+        cycle <- sort(cycle)
+        cycle <- append(NA, cycle)
+      }else{
+        cycle <- sort(cycle)
+      }
+      class(cycle)
+      
+      #FOR loop to process factor levels
+      for(j in cycle){
+        
+        #calculate mean per each level 
+        if(is.na(j)){
+          #define the vector with 1 and 0 per each level for NA
+          condition <- as.integer(as.vector(unlist(is.na(initial_data_updated[,..step]))))
+          mean_level <- round(sum(unlist(gb[condition == 1]), na.rm = FALSE)/goods, rounding)
+        }else{
+          #define the vector with 1 and 0 per each level for non-NA
+          condition <- as.integer(as.vector(unlist(initial_data_updated[,..step]) == j & !is.na(initial_data_updated[,..step])))
+          
+          #condition <- condition[!is.na(condition)]
+          mean_level <- round(sum(unlist(gb[condition == 1 & !is.na(condition)]), na.rm = TRUE)/goods, rounding)
+        }
+        #populate the temporary vector with interval numberlevel mean
+        inter <- which(cycle %in% j)
+        tmp_vector[condition == 1] <- inter 
+        
+        #check for NA items
+        if (is.na(j)){
+          initial_intervals_summary <- rbind(initial_intervals_summary, 
+                                             data.frame(    variable = as.character(step)
+                                                            ,variable_factor = as.character(j) #variable <- 
+                                                            ,column_final = as.character(step)
+                                                            ,interval_type = as.character("factor") #interval_type <- 
+                                                            ,interval_number = as.integer(inter) #interval_number <- 
+                                                            ,interval_str = as.character(paste(mean_level,"=",mean_level))  #interval_str <-       
+                                                            ,start = mean_level #start <- 
+                                                            ,end = mean_level #end <- 
+                                                            ,total = sum(condition) #total <- 
+                                                            ,good = sum(gb[condition == 1]) #good <- 
+                                                            ,bad = sum(condition) - sum(gb[condition == 1]) #bad <- 
+                                             )
+          )
+          
+        } else {
+          #check non-NA items
+          initial_intervals_summary <- rbind(initial_intervals_summary, 
+                                             data.frame(  variable = as.character(step)
+                                                          ,variable_factor = as.character(j) #variable <- 
+                                                          ,column_final = as.character(step)
+                                                          ,interval_type = as.character("factor") #interval_type <- 
+                                                          ,interval_number = as.integer(inter) #interval_number <- 
+                                                          ,interval_str = as.character(paste(mean_level,"=",mean_level))  #interval_str <-       
+                                                          ,start = mean_level #start <- 
+                                                          ,end = mean_level #end <- 
+                                                          ,total = sum(condition == 1) #total <- 
+                                                          ,good = sum(gb[condition == 1]) #good <- 
+                                                          ,bad = sum(condition == 1) - sum(gb[condition == 1]) #bad <- 
+                                             )
+          )
+        }
+        
+        #}    
+        
+        
+      }
+      #populate the temporary table
+      tmp_table <- cbind(tmp_table, tmp_vector)
+      #put names to new columns
+      names(tmp_table)[dim(tmp_table)[2]] <- step  
+      
+    }
+    
+  }  
+  
   #return binned factor portfolio and interval summary.  
   return(list(tmp_table[, -1], initial_intervals_summary))
 }
