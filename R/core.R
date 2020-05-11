@@ -250,16 +250,15 @@ binFactor <- function(  initial_data_updated
   # OPTION3 - FOR loop to process all factors as mean quantaty of GOODs per each level
   if (factor_type == 3){
     for (step in column_names_factor){
-      #define factor levels in the selected column
-      cycle <- as.vector(unique(unlist(initial_data_updated[,..step])))
       
-      if(sum(is.na(cycle))>0){
-        cycle <- sort(cycle)
+      #if(step == 'Region') browser()
+      #define factor levels in the selected column
+      is_NA <- sum(is.na(initial_data_updated[, ..step])) 
+      cycle <- levels(eval(substitute(initial_data_updated$step, list(step = step))))
+
+      if(is_NA > 0){
         cycle <- append(NA, cycle)
-      }else{
-        cycle <- sort(cycle)
       }
-      class(cycle)
       
       #FOR loop to process factor levels
       for(j in cycle){
@@ -334,15 +333,12 @@ binFactor <- function(  initial_data_updated
     
     for (step in column_names_factor){
       #define factor levels in the selected column
-      cycle <- as.vector(unique(unlist(initial_data_updated[,..step])))
+      is_NA <- sum(is.na(initial_data_updated[, ..step])) 
+      cycle <- levels(eval(substitute(initial_data_updated$step, list(step = step))))
       
-      if(sum(is.na(cycle))>0){
-        cycle <- sort(cycle)
+      if(is_NA > 0){
         cycle <- append(NA, cycle)
-      }else{
-        cycle <- sort(cycle)
       }
-      class(cycle)
       
       #FOR loop to process factor levels
       for(j in cycle){
@@ -397,10 +393,7 @@ binFactor <- function(  initial_data_updated
                                              )
           )
         }
-        
         #}    
-        
-        
       }
       #populate the temporary table
       tmp_table <- cbind(tmp_table, tmp_vector)
@@ -431,10 +424,12 @@ binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
                                              ,bad = as.integer()
   )  
   
+  nrows <- dim(initial_data_updated)[1]
+  
   #vector of column classes
   column_classes <- sapply(initial_data_updated, class)
   #reduce the input data by factor columns
-  index <- which(column_classes %in% c("integer", "numeric", "complex", "double"))
+  index <- which(column_classes %in% c("integer", "numeric", "complex", "double") & colnames(initial_data_updated) %in% selected_vars)
   column_classes <- column_classes[index]
   
   #vector of column names[index]
@@ -445,7 +440,7 @@ binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
   attribute_qty <- length(column_names)
   
   #the final output table
-  binned_table <- data.table(matrix(nrow = column_length, ncol = length(column_names)))
+  binned_table <- data.table(matrix(nrow = nrows, ncol = length(column_names)))
   
   if (interval_qty > column_length) {
     
@@ -458,12 +453,15 @@ binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
   }
   
   for (j in 1:attribute_qty){
+     
+    if(j == 14) browser()
+    
     #order the vector in ascendency
     sorted_vector <- sort(as.vector(unlist(initial_data_updated[, ..j])), na.last = TRUE)
     #numbers of NA items in the vector
     NA_values_qty <- sum(is.na(sorted_vector))
     #share of NA items in the vector
-    NA_values_qty_share <- round(sum(is.na(sorted_vector))/length(sorted_vector), 2)
+    NA_values_qty_share <- round(sum(is.na(sorted_vector))/nrows, 2)
     
     #interval value distribution before preprocessing
     initial_vector <- sorted_vector[vector_index]
@@ -473,18 +471,24 @@ binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
     NA_intervals_qty_share <- sum(is.na(initial_vector))/(length(initial_vector)-1)
     
     #output of NA values and share
-    print(paste("NA % in vector: ", NA_values_qty_share * 100, "% (", NA_values_qty, ") of (", column_length, ")", sep = "", collapse = ""))
-    print(paste("NA % in intervals: ", NA_intervals_qty_share * 100, "% (", NA_intervals_qty, ") of (", interval_qty, ")", sep = "", collapse = ""))
+    print(paste("NA % in vector(",column_names[j], j, " ): ", NA_values_qty_share * 100, "% (", NA_values_qty, ") of (", column_length, ")", sep = "", collapse = ""))
+    print(paste("NA % in intervals(",column_names[j], j," ): ", NA_intervals_qty_share * 100, "% (", NA_intervals_qty, ") of (", interval_qty, ")", sep = "", collapse = ""))
     
-    #initial vector with intervals without NA
-    initial_vector_updated <- initial_vector[!is.na(initial_vector)]
-    #remove NAs fron the vector
-    sorted_vector_updated <- sorted_vector[!is.na(sorted_vector)]
+    #vector of unique values
+    if (sum(!is.na(unique(initial_vector))) <= 2){
+      
+      initial_vector_updated <- sort(unique(initial_vector))
+      actual_vector_intervals <- rbind(initial_vector_updated, initial_vector_updated)     
+      
+    }else{
+      
+      initial_vector_updated <- sort(unique(initial_vector))
+      #matrix of start and end of intervals (1- star, 2 - end)
+      actual_vector_intervals <- rbind(initial_vector_updated[-length(initial_vector_updated)], initial_vector_updated[-1])     
     
-    #matrix of start and end of intervals (1- star, 2 - end)
-    actual_vector_intervals <- rbind(initial_vector_updated[-length(initial_vector_updated)], initial_vector_updated[-1])
-    
-    if (sum(is.na(unique(sorted_vector))) > 0) actual_vector_intervals <- cbind(actual_vector_intervals, c(NA, NA))
+    }
+      
+    if (NA_values_qty > 0) actual_vector_intervals <- cbind(actual_vector_intervals, c(NA, NA))
     
     #rename columns: Vx -> 1, 2, 3 ...
     colnames(actual_vector_intervals) <- as.character(c(1:dim(actual_vector_intervals)[2]))
@@ -899,6 +903,7 @@ readColNamesClasses <- function(data){
 
 convertToDataType <- function(data, vars_to_convert, data_type){
   
+  data <- copy(data)
   #read column names and their classes  
   vars <- readColNamesClasses(data)
   #check whether we need to perfrom further stepas
@@ -930,7 +935,7 @@ convertToDataType <- function(data, vars_to_convert, data_type){
       }
       
       if(data_type[check] == 'date'){
-        data[, (col) := lapply(col, function(x) {as.Date(data[[x]], format = "%d/%m/%Y")})]
+        data[, (col) := lapply(col, function(x) {as.Date(data[[x]], format = "%d-%m-%Y")})]
       }  
       
     }
