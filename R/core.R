@@ -454,7 +454,7 @@ binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
   
   for (j in 1:attribute_qty){
      
-    if(column_names[j] == 'IsCustomAddress') browser()
+    if(column_names[j] == 'total_debt_writeoff') browser()
       
     #if(j == 14) browser()
     #order the vector in ascendency
@@ -476,10 +476,11 @@ binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
     print(paste("NA % in intervals(",column_names[j], j," ): ", NA_intervals_qty_share * 100, "% (", NA_intervals_qty, ") of (", interval_qty, ")", sep = "", collapse = ""))
     
     #vector of unique values
-    if (sum(!is.na(unique(initial_vector))) <= 2){
+    if (sum(!is.na(unique(initial_vector))) == 2){
       
       initial_vector_updated <- sort(unique(initial_vector))
-      actual_vector_intervals <- rbind(initial_vector_updated, initial_vector_updated)     
+      actual_vector_intervals <- rbind(initial_vector_updated, initial_vector_updated)
+      actual_vector_intervals[2,1] <- actual_vector_intervals[2,2]
       
     }else{
       
@@ -558,11 +559,8 @@ binColumn <- function(  vector_to_be_binned
       #check the 1st item
       if(i == 1){
         index_not_na <- which(!is.na(vector_to_be_binned))
-        if(actual_vector_intervals[1, i] == actual_vector_intervals[2, i]){
-          index_total <- which(vector_to_be_binned[index_not_na] == actual_vector_intervals[2, i])
-        }else{
-          index_total <- which(vector_to_be_binned[index_not_na] < actual_vector_intervals[2, i]) 
-        }
+
+        index_total <- which(vector_to_be_binned[index_not_na] < actual_vector_intervals[2, i]) 
 
         mapping_vector[index_total] <- i
         
@@ -587,12 +585,8 @@ binColumn <- function(  vector_to_be_binned
      #check all items between 1 and last one  
      if (i != 1 && i < actual_vector_intervals_qty){
        index_not_na <- which(!is.na(vector_to_be_binned))
-       if(actual_vector_intervals[1, i] == actual_vector_intervals[2, i]){
-          index_total <- which(vector_to_be_binned[!is.na(vector_to_be_binned)] == actual_vector_intervals[1, i] & vector_to_be_binned[!is.na(vector_to_be_binned)] == actual_vector_intervals[2, i]) 
-       }else{
-         index_total <- which(vector_to_be_binned[!is.na(vector_to_be_binned)] >= actual_vector_intervals[1, i] & vector_to_be_binned[!is.na(vector_to_be_binned)] < actual_vector_intervals[2, i])
-       }
-       
+
+       index_total <- which(vector_to_be_binned[!is.na(vector_to_be_binned)] >= actual_vector_intervals[1, i] & vector_to_be_binned[!is.na(vector_to_be_binned)] < actual_vector_intervals[2, i])
        
        mapping_vector[index_total] <- i
        
@@ -618,12 +612,8 @@ binColumn <- function(  vector_to_be_binned
     if (i == actual_vector_intervals_qty & is_NA == 0){  
       index_not_na <- which(!is.na(vector_to_be_binned))
       
-      if(actual_vector_intervals[1, i] == actual_vector_intervals[2, i]){
-        index_total <- which(vector_to_be_binned[index_not_na] == actual_vector_intervals[1, actual_vector_intervals_qty])
-      }else{
-        index_total <- which(vector_to_be_binned[index_not_na] >= actual_vector_intervals[1, actual_vector_intervals_qty])  
-      }
-      
+      index_total <- which(vector_to_be_binned[index_not_na] >= actual_vector_intervals[1, actual_vector_intervals_qty])  
+
       mapping_vector[index_total] <- i
       
       total <- length(index_total)
