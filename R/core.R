@@ -195,7 +195,7 @@ binFactor <- function(  initial_data_updated
           
           initial_intervals_summary <- rbind(initial_intervals_summary, 
                                              data.frame(   variable = as.character(step)
-                                                           ,variable_factor = as.character(unique_intervals[inter]) #variable <- 
+                                                           ,variable_factor = 'NA'#as.character(unique_intervals[inter]) #variable <- 
                                                            ,column_final = as.character(step)
                                                            ,interval_type = as.character("factor") #interval_type <- 
                                                            ,interval_number = as.integer(inter) #interval_number <- 
@@ -283,11 +283,11 @@ binFactor <- function(  initial_data_updated
         if (is.na(j)){
           initial_intervals_summary <- rbind(initial_intervals_summary, 
                                              data.frame(    variable = as.character(step)
-                                                            ,variable_factor = as.character(j) #variable <- 
+                                                            ,variable_factor = 'NA' #as.character(j) #variable <- 
                                                             ,column_final = as.character(step)
                                                             ,interval_type = as.character("factor") #interval_type <- 
                                                             ,interval_number = as.integer(inter) #interval_number <- 
-                                                            ,interval_str = as.character(paste(mean_level,"=",mean_level))  #interval_str <-       
+                                                            ,interval_str = as.character('NA = NA')  #interval_str <-       
                                                             ,start = mean_level #start <- 
                                                             ,end = mean_level #end <- 
                                                             ,total = sum(condition) #total <- 
@@ -363,11 +363,11 @@ binFactor <- function(  initial_data_updated
         if (is.na(j)){
           initial_intervals_summary <- rbind(initial_intervals_summary, 
                                              data.frame(    variable = as.character(step)
-                                                            ,variable_factor = as.character(j) #variable <- 
+                                                            ,variable_factor = 'NA' #as.character(j) #variable <- 
                                                             ,column_final = as.character(step)
                                                             ,interval_type = as.character("factor") #interval_type <- 
                                                             ,interval_number = as.integer(inter) #interval_number <- 
-                                                            ,interval_str = as.character(paste(mean_level,"=",mean_level))  #interval_str <-       
+                                                            ,interval_str = as.character('NA = NA')  #interval_str <-       
                                                             ,start = mean_level #start <- 
                                                             ,end = mean_level #end <- 
                                                             ,total = sum(condition) #total <- 
@@ -454,7 +454,7 @@ binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
   
   for (j in 1:attribute_qty){
      
-    if(column_names[j] == 'total_debt_writeoff') browser()
+    #if(column_names[j] == 'total_debt_writeoff') browser()
       
     #if(j == 14) browser()
     #order the vector in ascendency
@@ -667,16 +667,18 @@ binColumn <- function(  vector_to_be_binned
 }
 
 #calculate WOE and IV
-calcWOEIV <- function(interval_summary, rounding = 4){
+calcWOEIV <- function(interval_summary, gb, rounding = 4){
   #browser()
   #convert to data.table
+  goods_total <- sum(gb)
+  bads_total <- sum(gb == 0)
   interval_summary <- as.data.table(interval_summary)
   #calculate basic values - part 1
   interval_summary[ , `:=`(  total_cum = round(cumsum(total), rounding) 
                              ,good_cum = round(cumsum(good), rounding)
                              ,bad_cum = round(cumsum(bad), rounding)
-                             ,good_rate = ifelse(total == 0, 0, round(good/total, rounding))
-                             ,bad_rate = ifelse(total == 0, 0, round(bad/total, rounding))
+                             ,good_rate = ifelse(total == 0, 0, round(good/goods_total, rounding))
+                             ,bad_rate = ifelse(total == 0, 0, round(bad/bads_total, rounding))
   )
   , by = .(variable)
   ]
@@ -712,37 +714,25 @@ binPortfolioWoe <- function(binned_portfolio, interval_summary_WOE_IV ){
   column_names <- names(binned_portfolio_WOE)
   
   interval_summary <- as.data.table(interval_summary_WOE_IV)
-  #binWOE factor columns of option1 (1 or 0) - paste proper WOE values
-  if(sum(column_names %in% interval_summary$variable_factor) > 0){
-    
-    
-    for(j in column_names[column_names %in% interval_summary$variable_factor]){
-      #temporary data table per a column 
-      interval_summary_tmp <- interval_summary[variable_factor == eval(j), ]
-      #set keys
-      setkeyv(interval_summary_tmp, c("interval_number"))
-      setkeyv(binned_portfolio_WOE, eval(j))
-      #transfer selected data to temporary var
-      tmp <- binned_portfolio_WOE[, ..j][interval_summary_tmp[variable_factor == eval(j), ], eval(j) := i.woe]
-      binned_portfolio_WOE[, eval(j)] <- tmp
-      
-    }
-  } 
   #binWOE non-factor columns (option1)- paste proper WOE values
-  if(sum(!(column_names %in% interval_summary$variable_factor)) > 0){
+
     #binWOE from variable 
-    for(j in column_names[!(column_names %in% interval_summary$variable_factor)]){
+    for(j in column_names){
       
       interval_summary_tmp <- interval_summary[variable == eval(j), ]
       setkeyv(interval_summary_tmp, c("interval_number"))
       setkeyv(binned_portfolio_WOE, eval(j))
       
-      tmp <- binned_portfolio_WOE[, ..j][interval_summary_tmp[variable == eval(j), ], eval(j) := i.woe]
+      tmp <- binned_portfolio_WOE[, ..j][interval_summary_tmp[variable == eval(j), ], temp_value := as.numeric(i.woe)]
+      eval(substitute(tmp$j <- tmp$temp_value, list(j = j)))
+      tmp$temp_value <- NULL
+      
       binned_portfolio_WOE[, eval(j)] <- tmp     
+      
       
     }
     
-  }
+  
   
   return(binned_portfolio_WOE)
 }
