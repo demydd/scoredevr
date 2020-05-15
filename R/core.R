@@ -429,7 +429,7 @@ binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
   #vector of column classes
   column_classes <- sapply(initial_data_updated, class)
   #reduce the input data by factor columns
-  index <- which(column_classes %in% c("integer", "numeric", "complex", "double") & colnames(initial_data_updated) %in% selected_vars)
+  index <- which(column_classes %in% c("integer", "numeric", "complex", "double", "integer64") & colnames(initial_data_updated) %in% selected_vars)
   column_classes <- column_classes[index]
   
   #vector of column names[index]
@@ -454,7 +454,7 @@ binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
   
   for (j in 1:attribute_qty){
      
-    #if(column_names[j] == 'total_debt_writeoff') browser()
+    if(column_names[j] == 'score') browser()
       
     #if(j == 14) browser()
     #order the vector in ascendency
@@ -586,7 +586,12 @@ binColumn <- function(  vector_to_be_binned
      if (i != 1 && i < actual_vector_intervals_qty){
        index_not_na <- which(!is.na(vector_to_be_binned))
 
-       index_total <- which(vector_to_be_binned[!is.na(vector_to_be_binned)] >= actual_vector_intervals[1, i] & vector_to_be_binned[!is.na(vector_to_be_binned)] < actual_vector_intervals[2, i])
+       if(actual_vector_intervals[1, i] == actual_vector_intervals[2, i]){
+         index_total <- which(vector_to_be_binned[!is.na(vector_to_be_binned)] == actual_vector_intervals[1, i])       
+       }else{
+         
+         index_total <- which(vector_to_be_binned[!is.na(vector_to_be_binned)] >= actual_vector_intervals[1, i] & vector_to_be_binned[!is.na(vector_to_be_binned)] < actual_vector_intervals[2, i])
+       }
        
        mapping_vector[index_total] <- i
        
@@ -718,6 +723,7 @@ binPortfolioWoe <- function(binned_portfolio, interval_summary_WOE_IV ){
 
     #binWOE from variable 
     for(j in column_names){
+      #if(j == 'IsCustomAddress') browser()
       
       interval_summary_tmp <- interval_summary[variable == eval(j), ]
       setkeyv(interval_summary_tmp, c("interval_number"))
@@ -740,6 +746,7 @@ binPortfolioWoe <- function(binned_portfolio, interval_summary_WOE_IV ){
 
 calcCorrelation <- function(binned_portfolio_WOE, cut_off_cor = 0.75){
   
+  nrows <- dim(binned_portfolio_WOE)[1]
   #calculate the initial correlation matrix (with NA)
   df2 <- cor(binned_portfolio_WOE)
   print("Correlation calculated.")
@@ -753,12 +760,12 @@ calcCorrelation <- function(binned_portfolio_WOE, cut_off_cor = 0.75){
   
   df2 <- as.matrix(df2)
   #to remove zero columns (factors)
-  x <- apply(df2, 2, sum)<=1
+  x <- apply(df2, 2, sum) == 1
   index <- which(x %in% c(TRUE))
   df2 <- as.data.frame(df2)
   
   if (sum(x)!=0){
-    df3 <- df2[-index,-index]
+      df3 <- df2[-index,-index]
   }else{
     df3 <- df2
   }
@@ -816,27 +823,34 @@ calcScore <- function(data, summaryWOE, modelOutput, x_vars, good_bad){
   
   #browser()
   #pick up the existing columns in data  
+  nrows <- dim(data)[1]
   ifelse(is.null(x_vars), column_names <- names(data), column_names <- names(data)[names(data) %in% x_vars])
   #pick up the data table with coefficients per variable
   model <- as.data.table(modelOutput[[1]])
   #score calculation for all variables selected
   for(j in column_names){
+    if(j == 'CompanyEmploymentExperience') browser()
     #pick up WOE extract per variable 
+    tmp_vector <- 1:nrows
     woe <- summaryWOE[column_final == j][ , .(column_final, interval_number, woe)]
+    #pick up model coefficient per variable
+    model_selected <- model[model$predictor == j]$value
     #FOR loop to rush through all woe intervals per variable selected 
     for(i in woe$interval_number){
-      #pick up model coefficient per variable
-      model_selected <- model[model$predictor == j]$value[i]
+
       #selection vector for IF statement
-      select <- data[, ..j] == i 
+      selection <- data[, ..j] == woe[i]$woe  
       #if any items are in selection -> perform calculation (WOE & var coefficient) per variable
-      if(sum(select) != 0){
+      if(sum(selection) != 0){
         
-        data[select, ..j] <- woe$woe[i] * model_selected
+        #data[, ..j] <- ifelse(selection == TRUE, woe$woe[i] * model_selected,0)
+        tmp_vector[selection] <- woe$woe[i] * model_selected
         #print(woe$woe[i] * model_selected)        
       }
       
     }
+    
+    eval(substitute(data$j <- tmp_vector, list(j = j, tmp_vector = tmp_vector)))
     
   }
   #pick up intercept 
