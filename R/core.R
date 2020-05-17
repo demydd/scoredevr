@@ -454,7 +454,7 @@ binVector <- function(initial_data_updated, interval_qty, selected_vars, gb){
   
   for (j in 1:attribute_qty){
      
-    if(column_names[j] == 'score') browser()
+    if(column_names[j] == 'CompanyEmploymentExperience') browser()
       
     #if(j == 14) browser()
     #order the vector in ascendency
@@ -581,8 +581,41 @@ binColumn <- function(  vector_to_be_binned
                                                      )
                                           )
         next        
-      } 
-     #check all items between 1 and last one  
+      }
+
+      #check all items between 1 and last one if NA > 0
+      if (i == actual_vector_intervals_qty - 1 & is_NA > 0){
+        index_not_na <- which(!is.na(vector_to_be_binned))
+        
+        if(actual_vector_intervals[1, i] == actual_vector_intervals[2, i]){
+          index_total <- which(vector_to_be_binned[!is.na(vector_to_be_binned)] == actual_vector_intervals[1, i])       
+        }else{
+          
+          index_total <- which(vector_to_be_binned[!is.na(vector_to_be_binned)] >= actual_vector_intervals[1, i])
+        }
+        
+        mapping_vector[index_total] <- i
+        
+        total <- length(index_total)
+        good <- sum(gb[index_not_na][index_total] == 1)
+        initial_intervals_summary <- rbind(initial_intervals_summary, 
+                                           data.frame(   variable = column_names
+                                                         ,variable_factor = NA #variable <- 
+                                                         ,column_final = column_names
+                                                         ,interval_type = column_classes #interval_type <- 
+                                                         ,interval_number = i #interval_number <- 
+                                                         ,interval_str = ifelse(actual_vector_intervals[1, i] == actual_vector_intervals[2, i], paste(actual_vector_intervals[1, i], '=', actual_vector_intervals[2, i]), paste('>=', actual_vector_intervals[1, i]))  #interval_str <-       
+                                                         ,start = actual_vector_intervals[1, i] #start <- 
+                                                         ,end = actual_vector_intervals[2, i] #end <- 
+                                                         ,total =  total #total <- 
+                                                         ,good = good #good <- 
+                                                         ,bad = total - good #bad <- 
+                                           )
+        )       
+        next       
+      }
+    
+     #check all items between 1 and last one 
      if (i != 1 && i < actual_vector_intervals_qty){
        index_not_na <- which(!is.na(vector_to_be_binned))
 
@@ -592,7 +625,9 @@ binColumn <- function(  vector_to_be_binned
          
          index_total <- which(vector_to_be_binned[!is.na(vector_to_be_binned)] >= actual_vector_intervals[1, i] & vector_to_be_binned[!is.na(vector_to_be_binned)] < actual_vector_intervals[2, i])
        }
+
        
+              
        mapping_vector[index_total] <- i
        
        total <- length(index_total)
@@ -723,7 +758,7 @@ binPortfolioWoe <- function(binned_portfolio, interval_summary_WOE_IV ){
 
     #binWOE from variable 
     for(j in column_names){
-      #if(j == 'IsCustomAddress') browser()
+      if(j == 'CompanyEmploymentExperience') browser()
       
       interval_summary_tmp <- interval_summary[variable == eval(j), ]
       setkeyv(interval_summary_tmp, c("interval_number"))
